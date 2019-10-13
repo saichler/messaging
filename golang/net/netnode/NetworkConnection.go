@@ -149,7 +149,7 @@ func (networkConnection *NetworkConnection) handle() {
 		data := networkConnection.mailbox.PopInbox()
 		if data != nil {
 			networkConnection.statistics.AddRxPackets(data)
-			networkConnection.networkNode.networkSwitch.handlePacket(data, networkConnection.mailbox)
+			networkConnection.networkNode.networkSwitch.handlePacket(data, networkConnection)
 		} else {
 			break
 		}

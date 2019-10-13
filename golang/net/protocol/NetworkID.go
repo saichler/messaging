@@ -19,35 +19,35 @@ func NewNetworkID(ipv4 string, port int) *NetworkID {
 	return newHID
 }
 
-func (nid *NetworkID) Most() int64 {
-	return nid.most
+func (networkID *NetworkID) Most() int64 {
+	return networkID.most
 }
 
-func (nid *NetworkID) Less() int64 {
-	return nid.less
+func (networkID *NetworkID) Less() int64 {
+	return networkID.less
 }
 
-func (nid *NetworkID) Marshal(ba *ByteSlice) {
-	if nid != nil {
-		ba.AddInt64(nid.most)
-		ba.AddInt64(nid.less)
+func (networkID *NetworkID) Marshal(ba *ByteSlice) {
+	if networkID != nil {
+		ba.AddInt64(networkID.most)
+		ba.AddInt64(networkID.less)
 	} else {
 		ba.AddInt64(0)
 		ba.AddInt64(0)
 	}
 }
 
-func (nid *NetworkID) Unmarshal(ba *ByteSlice) {
-	nid.most = ba.GetInt64()
-	nid.less = ba.GetInt64()
+func (networkID *NetworkID) Unmarshal(ba *ByteSlice) {
+	networkID.most = ba.GetInt64()
+	networkID.less = ba.GetInt64()
 }
 
-func (nid *NetworkID) String() string {
-	ip := int32(nid.most >> 32)
-	port := int(nid.less - ((nid.less >> 32) << 32))
+func (networkID *NetworkID) String() string {
+	ip := int32(networkID.most >> 32)
+	port := int(networkID.less - ((networkID.less >> 32) << 32))
 	buff := bytes.Buffer{}
 	buff.WriteString("[UuidM=")
-	buff.WriteString(strconv.Itoa(int(nid.most)))
+	buff.WriteString(strconv.Itoa(int(networkID.most)))
 	buff.WriteString(",IP=")
 	buff.WriteString(GetIpAsString(ip))
 	buff.WriteString(",Port=")
@@ -56,21 +56,29 @@ func (nid *NetworkID) String() string {
 	return buff.String()
 }
 
-func (nid *NetworkID) Equal(other *NetworkID) bool {
-	return nid.most == other.most &&
-		nid.less == other.less
+func (networkID *NetworkID) Equal(other *NetworkID) bool {
+	return networkID.most == other.most &&
+		networkID.less == other.less
 }
 
-func (nid *NetworkID) Publish() bool {
-	if nid.most == PUBLISH_MARK {
+func (networkID *NetworkID) Publish() bool {
+	if networkID.most == PUBLISH_MARK {
 		return true
 	}
 	return false
 }
 
-func (nid *NetworkID) Unreachable() bool {
-	if nid.most == UNREACHABLE_MARK {
+func (networkID *NetworkID) Unreachable() bool {
+	if networkID.most == UNREACHABLE_MARK {
 		return true
 	}
 	return false
+}
+
+func (networkID *NetworkID) Host() int32 {
+	return int32(networkID.less >> 32)
+}
+
+func (networkID *NetworkID) Port() int32 {
+	return int32(networkID.less - ((networkID.less >> 32) << 32))
 }

@@ -15,6 +15,19 @@ type Packet struct {
 	data        []byte
 }
 
+func NewPacket(source, destination *NetworkID, messageID, packetID uint32, multi, persisted bool, priority int, data []byte) *Packet {
+	packet := &Packet{}
+	packet.source = source
+	packet.destination = destination
+	packet.messageID = messageID
+	packet.packetID = packetID
+	packet.multi = multi
+	packet.persisted = persisted
+	packet.priority = priority
+	packet.data = data
+	return packet
+}
+
 func (p *Packet) Source() *NetworkID {
 	return p.source
 }

@@ -99,7 +99,7 @@ func GetIpAsInt32(ipaddr string) int32 {
 	return ipint
 }
 
-func ParsePriority(data []byte) int {
+func Priority(data []byte) int {
 	p := 0
 	_, _, p = Decode2BoolAndUInt6(data[32])
 	return p

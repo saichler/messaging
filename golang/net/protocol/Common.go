@@ -12,4 +12,4 @@ var UNREACH_HID = newDestUnreachableHabitatID()
 var MTU = 512
 var KEY = "bNhDNirkahDbiJJirSfaNNEXDprtwQoK"
 var ENCRYPTED = true
-var HANDSHAK_DATA = []byte{127, 83, 83, 127, 12, 10, 11}
+var HandShakeSignature = []byte{11, 3, 72, 10, 4, 75, 6, 4, 04, 1, 9, 6, 12, 15, 10, 3, 1, 4, 1, 5, 9, 2, 6, 5}

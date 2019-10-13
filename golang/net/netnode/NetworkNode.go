@@ -1,4 +1,4 @@
-package node
+package netnode
 
 import (
 	. "github.com/saichler/messaging/golang/net/protocol"
@@ -8,15 +8,15 @@ import (
 )
 
 type NetworkNode struct {
-	networkID             *NetworkID
-	messageHandler        MessageHandler
-	isNetworkSwitch       bool
-	networkSwitch         *NetworkSwitch
-	socket                net.Listener
-	machineSwitchNetowkID *NetworkID
-	lock                  *sync.Cond
-	nextMessageID         uint32
-	running               bool
+	networkID       *NetworkID
+	messageHandler  MessageHandler
+	isNetworkSwitch bool
+	networkSwitch   *NetworkSwitch
+	socket          net.Listener
+	switchNetworkID *NetworkID
+	lock            *sync.Cond
+	nextMessageID   uint32
+	running         bool
 }
 
 func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
@@ -46,5 +46,5 @@ func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
 	nn.socket = socket
 	nn.networkSwitch = newSwitch(nn)
 	//habitat.start()
-	return habitat, nil
+	return nn, nil
 }

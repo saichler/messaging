@@ -1,4 +1,4 @@
-package node
+package netnode
 
 import (
 	"errors"
@@ -32,4 +32,13 @@ func bind() (net.Listener, int, error) {
 	}
 
 	return socket, port, nil
+}
+
+func Size(s int) [4]byte {
+	size := [4]byte{}
+	size[0] = byte(s)
+	size[1] = byte(s >> 8)
+	size[2] = byte(s >> 16)
+	size[3] = byte(s >> 24)
+	return size
 }

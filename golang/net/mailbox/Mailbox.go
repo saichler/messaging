@@ -62,7 +62,7 @@ func (mailbox *Mailbox) getMultiPartMessage(packet *Packet) (*MultiPartMessage, 
 	return mpm, smpm
 }
 
-func (mailbox *Mailbox) addPacket(packet *Packet) ([]byte, bool) {
+func (mailbox *Mailbox) AddPacket(packet *Packet) ([]byte, bool) {
 	mp, smp := mailbox.getMultiPartMessage(packet)
 	mp.packets.Add(packet)
 	if mp.totalExpectedPackets == 0 && packet.PacketID() == 0 {

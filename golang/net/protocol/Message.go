@@ -2,7 +2,6 @@ package protocol
 
 import (
 	. "github.com/saichler/utils/golang"
-	"strconv"
 )
 
 type Message struct {
@@ -15,6 +14,18 @@ type Message struct {
 	priority       int
 	complete       bool
 	unreachable    bool
+}
+
+func NewMessage(source, destination, originalSource *ServiceID, messageID uint32, topic string, priority int, data []byte) *Message {
+	message := &Message{}
+	message.source = source
+	message.destination = destination
+	message.originalSource = originalSource
+	message.messageID = messageID
+	message.topic = topic
+	message.priority = priority
+	message.data = data
+	return message
 }
 
 func (message *Message) Marshal() []byte {
@@ -40,87 +51,50 @@ func (message *Message) Unmarshal(ba *ByteSlice) {
 	message.data = ba.GetByteSlice()
 }
 
+func (message *Message) Source() *ServiceID {
+	return message.source
+}
+
+func (message *Message) Destination() *ServiceID {
+	return message.source
+}
+
+func (message *Message) OriginalSource() *ServiceID {
+	return message.originalSource
+}
+
+func (message *Message) MessageID() uint32 {
+	return message.messageID
+}
+
+func (message *Message) Topic() string {
+	return message.topic
+}
+
+func (message *Message) Data() []byte {
+	return message.data
+}
+
+func (message *Message) SetData(data []byte) {
+	message.data = data
+}
+
+func (message *Message) Complete() bool {
+	return message.complete
+}
+
+func (message *Message) SetComplete(complete bool) {
+	message.complete = complete
+}
+
+func (message *Message) Priority() int {
+	return message.priority
+}
+
+func (message *Message) Unreachable() bool {
+	return message.unreachable
+}
+
 func (message *Message) Publish() bool {
 	return message.destination.Publish()
-}
-
-func (message *Message) Decode(pkt *Packet, inbox *Mailbox, isUnreachable bool) {
-
-	packet := pkt
-
-	if isUnreachable {
-		origSource, origDest, om, oprs, opri, ba := unmarshalPacketHeader(pkt.Data)
-		packet.UnmarshalAll(origSource, origDest, om, oprs, opri, ba)
-	}
-
-	if packet.MultiPart {
-		message.Data, message.Complete = inbox.addPacket(packet)
-	} else {
-		message.Data = packet.Data
-		message.Complete = true
-	}
-
-	if message.Complete {
-		if packet.Dest.Equal(UNREACH_HID) {
-		} else {
-			message.Unmarshal(packet.Source, packet.Dest)
-		}
-	}
-}
-
-func (message *Message) Send(ne *Interface) error {
-	ne.statistics.AddTxMessages()
-
-	messageData := message.Marshal()
-
-	if len(messageData) > MTU {
-
-		totalParts := len(messageData) / MTU
-		left := len(messageData) - totalParts*MTU
-
-		if left > 0 {
-			totalParts++
-		}
-
-		totalParts++
-
-		if totalParts > 1000 {
-			Info("Large Message, total parts:" + strconv.Itoa(totalParts))
-		}
-
-		ba := ByteSlice{}
-		ba.AddUInt32(uint32(totalParts))
-		ba.AddUInt32(uint32(len(messageData)))
-
-		packet := ne.CreatePacket(message.Dest, message.MID, 0, true, 0, ba.Data())
-		err := ne.sendPacket(packet)
-		if err != nil {
-			return err
-		}
-
-		for i := 0; i < totalParts-1; i++ {
-			loc := i * MTU
-			var packetData []byte
-			if i < totalParts-2 || left == 0 {
-				packetData = messageData[loc : loc+MTU]
-			} else {
-				packetData = messageData[loc : loc+left]
-			}
-
-			packet := ne.CreatePacket(message.Dest, message.MID, uint32(i+1), true, 0, packetData)
-			if i%1000 == 0 {
-				Info("Sent " + strconv.Itoa(i) + " packets out of " + strconv.Itoa(totalParts))
-			}
-			err = ne.sendPacket(packet)
-			if err != nil {
-				Error("Was able to send only" + strconv.Itoa(i) + " packets")
-				break
-			}
-		}
-	} else {
-		packet := ne.CreatePacket(message.Dest, message.MID, 0, false, 0, messageData)
-		ne.sendPacket(packet)
-	}
-
-	return nil
 }

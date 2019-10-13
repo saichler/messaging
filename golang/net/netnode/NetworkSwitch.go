@@ -2,6 +2,7 @@ package netnode
 
 import (
 	"errors"
+	. "github.com/saichler/messaging/golang/net/protocol"
 	. "github.com/saichler/utils/golang"
 )
 
@@ -19,104 +20,138 @@ func newSwitch(networkNode *NetworkNode) *NetworkSwitch {
 	return nSwitch
 }
 
-func (s *NetworkSwitch) removeInterface(in *Interface) {
-	if !in.external {
-		s.internal.Del(*in.peerHID)
+func (networkSwitch *NetworkSwitch) removeNetowrkConnection(networkConection *NetworkConnection) {
+	if !networkConection.external {
+		networkSwitch.internal.Del(*networkConection.peerNetworkID)
 	} else {
-		s.external.Del(in.peerHID.getHostID())
+		networkSwitch.external.Del(networkConection.peerNetworkID.Host())
 	}
-	Info("Interface " + in.peerHID.String() + " was deleted")
+	Info("Network Connection " + networkConection.peerNetworkID.String() + " was deleted")
 }
 
-func (s *Switch) addInterface(in *Interface) bool {
-	if !in.external {
-		old, _ := s.internal.Get(*in.peerHID)
+func (networkSwitch *NetworkSwitch) addNetworkConnection(networkConnection *NetworkConnection) bool {
+	if !networkConnection.external {
+		old, _ := networkSwitch.internal.Get(*networkConnection.peerNetworkID)
 		if old != nil {
-			s.removeInterface(old.(*Interface))
+			networkSwitch.removeNetowrkConnection(old.(*NetworkConnection))
 		}
-		s.internal.Put(*in.peerHID, in)
+		networkSwitch.internal.Put(*networkConnection.peerNetworkID, networkConnection)
 	} else {
-		old, _ := s.external.Get(in.peerHID.getHostID())
+		old, _ := networkSwitch.external.Get(networkConnection.peerNetworkID.Host())
 		if old != nil {
-			s.removeInterface(old.(*Interface))
+			networkSwitch.removeNetowrkConnection(old.(*NetworkConnection))
 		}
-		s.external.Put(in.peerHID.getHostID(), in)
+		networkSwitch.external.Put(networkConnection.peerNetworkID.Host(), networkConnection)
 	}
 	return true
 }
 
-func (s *Switch) sendUnreachable(source *HabitatID, priority int, data []byte) {
-	in := s.getInterface(source)
-	if in == nil {
-		return
+func (networkSwitch *NetworkSwitch) getNetworkConnection(networkID *NetworkID) *NetworkConnection {
+	var networkConnection *NetworkConnection
+	if networkID.Host() == networkSwitch.netowrkNode.networkID.Host() {
+		if networkSwitch.netowrkNode.isNetworkSwitch {
+			inter, _ := networkSwitch.internal.Get(*networkID)
+			if inter == nil {
+				return nil
+			}
+			networkConnection = inter.(*NetworkConnection)
+		} else {
+			inter, _ := networkSwitch.internal.Get(*networkSwitch.netowrkNode.switchNetworkID)
+			if inter == nil {
+				return nil
+			}
+			networkConnection = inter.(*NetworkConnection)
+		}
+	} else {
+		if networkSwitch.netowrkNode.isNetworkSwitch {
+			inter, _ := networkSwitch.external.Get(networkID.Host())
+			if inter == nil {
+				return nil
+			}
+			networkConnection = inter.(*NetworkConnection)
+		} else {
+			inter, _ := networkSwitch.internal.Get(*networkSwitch.netowrkNode.switchNetworkID)
+			if inter == nil {
+				return nil
+			}
+			networkConnection = inter.(*NetworkConnection)
+		}
 	}
-	p := CreatePacket(source, UNREACH_HID, 0, 0, false, 0, data)
-	in.mailbox.outbox.Push(p.Marshal(), priority)
+	return networkConnection
 }
 
-func (s *Switch) handlePacket(data []byte, mailbox *Mailbox) error {
-	source, dest, m, prs, pri, ba := unmarshalPacketHeader(data)
-	if dest.Equal(UNREACH_HID) {
-		if source.Equal(s.habitat.hid) {
-			s.handleMyPacket(source, dest, m, prs, pri, data, ba, mailbox, true)
+func (networkSwitch *NetworkSwitch) sendUnreachable(source *NetworkID, priority int, data []byte) {
+	networkConnection := networkSwitch.getNetworkConnection(source)
+	if networkConnection == nil {
+		return
+	}
+	p := NewPacket(source, UNREACH_HID, 0, 0, false, false, 0, data)
+	networkConnection.mailbox.PushOutbox(p.Marshal(), priority)
+}
+
+func (networkSwitch *NetworkSwitch) handlePacket(data []byte, networkConnection *NetworkConnection) error {
+	source, destination, multi, persist, priority, ba := UnmarshalHeaderOnly(data)
+	if destination.Equal(UNREACH_HID) {
+		if source.Equal(networkSwitch.netowrkNode.networkID) {
+			networkSwitch.handleMyPacket(source, destination, multi, persist, priority, data, ba, networkConnection, true)
 
 		}
-	} else if dest.IsPublish() {
-		s.handleMulticast(source, dest, m, prs, pri, data, ba, mailbox)
-	} else if dest.Equal(s.habitat.HID()) {
-		s.handleMyPacket(source, dest, m, prs, pri, data, ba, mailbox, false)
+	} else if destination.Publish() {
+		networkSwitch.handleMulticast(source, destination, multi, persist, priority, data, ba, networkConnection)
+	} else if destination.Equal(networkSwitch.netowrkNode.networkID) {
+		networkSwitch.handleMyPacket(source, destination, multi, persist, priority, data, ba, networkConnection, false)
 	} else {
-		in := s.getInterface(dest)
+		in := networkSwitch.getNetworkConnection(destination)
 		if in == nil {
-			s.sendUnreachable(source, pri, data)
-			return errors.New("Unreachable address:" + dest.String())
+			networkSwitch.sendUnreachable(source, priority, data)
+			return errors.New("Unreachable address:" + destination.String())
 		}
-		in.mailbox.PushOutbox(data, pri)
+		in.mailbox.PushOutbox(data, priority)
 	}
 	return nil
 }
 
-func (s *Switch) handleMulticast(source, dest *HabitatID, m, prs bool, pri int, data []byte, ba *ByteSlice, inbox *Mailbox) {
-	if s.habitat.isSwitch {
-		all := s.getAllInternal()
+func (networkSwitch *NetworkSwitch) handleMulticast(source, destination *NetworkID, multi, persist bool, priority int, data []byte, ba *ByteSlice, networkConnection *NetworkConnection) {
+	if networkSwitch.netowrkNode.isNetworkSwitch {
+		all := networkSwitch.getAllInternal()
 		for k, v := range all {
 			if !k.Equal(source) {
-				v.mailbox.PushOutbox(data, pri)
+				v.mailbox.PushOutbox(data, priority)
 			}
 		}
-		if source.sameMachine(s.habitat.hid) {
-			all := s.getAllExternal()
+		if source.Host() == networkSwitch.netowrkNode.networkID.Host() {
+			all := networkSwitch.getAllExternal()
 			for _, v := range all {
-				v.mailbox.PushOutbox(data, pri)
+				v.mailbox.PushOutbox(data, priority)
 			}
 		}
 	}
-	s.handleMyPacket(source, dest, m, prs, pri, data, ba, inbox, false)
+	networkSwitch.handleMyPacket(source, destination, multi, persist, priority, data, ba, networkConnection, false)
 }
 
-func (s *Switch) handleMyPacket(source, dest *HabitatID, m, prs bool, pri int, data []byte, ba *ByteSlice, inbox *Mailbox, isUnreachable bool) {
-	message := Message{}
+func (networkSwitch *NetworkSwitch) handleMyPacket(source, destination *NetworkID, multi, persist bool, priority int, data []byte, ba *ByteSlice, networkConnection *NetworkConnection, isUnreachable bool) {
+	message := &Message{}
 	p := &Packet{}
-	p.UnmarshalAll(source, dest, m, prs, pri, ba)
-	message.Decode(p, inbox, isUnreachable)
+	p.Unmarshal(source, destination, multi, persist, priority, ba)
+	networkConnection.DecodeMessage(p, message, isUnreachable)
 
-	if message.Complete {
-		ne := s.getInterface(source)
+	if message.Complete() {
+		ne := networkSwitch.getNetworkConnection(source)
 		ne.statistics.AddRxMessages()
 		if !isUnreachable {
-			s.habitat.messageHandler.HandleMessage(s.habitat, &message)
+			networkSwitch.netowrkNode.messageHandler.HandleMessage(message)
 		} else {
-			s.habitat.messageHandler.HandleUnreachable(s.habitat, &message)
+			networkSwitch.netowrkNode.messageHandler.HandleUnreachable(message)
 		}
 	}
 }
 
-func (s *Switch) getAllInternal() map[HabitatID]*Interface {
-	result := make(map[HabitatID]*Interface)
-	all := s.internal.GetMap()
+func (networkSwitch *NetworkSwitch) getAllInternal() map[NetworkID]*NetworkConnection {
+	result := make(map[NetworkID]*NetworkConnection)
+	all := networkSwitch.internal.GetMap()
 	for k, v := range all {
-		key := k.(HabitatID)
-		value := v.(*Interface)
+		key := k.(NetworkID)
+		value := v.(*NetworkConnection)
 		if !value.isClosed {
 			result[key] = value
 		}
@@ -124,12 +159,12 @@ func (s *Switch) getAllInternal() map[HabitatID]*Interface {
 	return result
 }
 
-func (s *Switch) getAllExternal() map[int32]*Interface {
-	result := make(map[int32]*Interface)
-	all := s.external.GetMap()
+func (networkSwitch *NetworkSwitch) getAllExternal() map[int32]*NetworkConnection {
+	result := make(map[int32]*NetworkConnection)
+	all := networkSwitch.external.GetMap()
 	for k, v := range all {
 		key := k.(int32)
-		value := v.(*Interface)
+		value := v.(*NetworkConnection)
 		if !value.isClosed {
 			result[key] = value
 		}
@@ -137,70 +172,36 @@ func (s *Switch) getAllExternal() map[int32]*Interface {
 	return result
 }
 
-func (s *Switch) getInterface(hid *HabitatID) *Interface {
-	var in *Interface
-	if hid.sameMachine(s.habitat.hid) {
-		if s.habitat.isSwitch {
-			inter, _ := s.internal.Get(*hid)
-			if inter == nil {
-				return nil
-			}
-			in = inter.(*Interface)
-		} else {
-			inter, _ := s.internal.Get(*s.habitat.GetSwitchNID())
-			if inter == nil {
-				return nil
-			}
-			in = inter.(*Interface)
-		}
-	} else {
-		if s.habitat.isSwitch {
-			inter, _ := s.external.Get(hid.getHostID())
-			if inter == nil {
-				return nil
-			}
-			in = inter.(*Interface)
-		} else {
-			inter, _ := s.internal.Get(*s.habitat.GetSwitchNID())
-			if inter == nil {
-				return nil
-			}
-			in = inter.(*Interface)
-		}
-	}
-	return in
-}
-
-func (s *Switch) shutdown() {
-	allInternal := s.getAllInternal()
+func (networkSwitch *NetworkSwitch) shutdown() {
+	allInternal := networkSwitch.getAllInternal()
 	for _, v := range allInternal {
 		v.Shutdown()
 	}
-	allExternal := s.getAllExternal()
+	allExternal := networkSwitch.getAllExternal()
 	for _, v := range allExternal {
 		v.Shutdown()
 	}
 }
 
-func (s *Switch) multicastFromSwitch(message *Message) {
-	faulty := make([]*Interface, 0)
-	internal := s.getAllInternal()
+func (networkSwitch *NetworkSwitch) multicastFromSwitch(message *Message) {
+	faulty := make([]*NetworkConnection, 0)
+	internal := networkSwitch.getAllInternal()
 	for _, in := range internal {
-		err := message.Send(in)
+		err := in.SendMessage(message)
 		if err != nil {
 			faulty = append(faulty, in)
 		}
 	}
-	if message.Source.hid.getHostID() == s.habitat.HID().getHostID() {
-		external := s.getAllExternal()
+	if message.Source().NetworkID().Host() == networkSwitch.netowrkNode.networkID.Host() {
+		external := networkSwitch.getAllExternal()
 		for _, in := range external {
-			err := message.Send(in)
+			err := in.SendMessage(message)
 			if err != nil {
 				faulty = append(faulty, in)
 			}
 		}
 	}
 	for _, in := range faulty {
-		s.removeInterface(in)
+		networkSwitch.removeNetowrkConnection(in)
 	}
 }

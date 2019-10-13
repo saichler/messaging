@@ -30,20 +30,20 @@ func newNetworkConnection(connection net.Conn, networkNode *NetworkNode) *Networ
 	return networkConnection
 }
 
-func (in *NetworkConnection) write(data []byte) error {
+func (networkConnection *NetworkConnection) write(data []byte) error {
 	start := time.Now().UnixNano()
 	dataSize := len(data)
 	size := Size(dataSize)
 	data = append(size[0:], data...)
 	dataSize = len(data)
 
-	in.statistics.AddTxPackets(data)
+	networkConnection.statistics.AddTxPackets(data)
 
-	n, e := in.connection.Write(data)
+	n, e := networkConnection.connection.Write(data)
 
 	end := time.Now().UnixNano()
 
-	in.statistics.AddTxTime(end - start)
+	networkConnection.statistics.AddTxTime(end - start)
 
 	if e != nil || n != dataSize {
 		msg := "Failed to send data: " + e.Error()
@@ -53,11 +53,11 @@ func (in *NetworkConnection) write(data []byte) error {
 	return nil
 }
 
-func (in *NetworkConnection) read(size int) ([]byte, error) {
+func (networkConnection *NetworkConnection) read(size int) ([]byte, error) {
 	data := make([]byte, size)
-	n, e := in.connection.Read(data)
+	n, e := networkConnection.connection.Read(data)
 
-	if !in.networkNode.running {
+	if !networkConnection.networkNode.running {
 		return nil, nil
 	}
 
@@ -71,7 +71,7 @@ func (in *NetworkConnection) read(size int) ([]byte, error) {
 			time.Sleep(time.Second)
 		}
 		data = data[0:n]
-		left, e := in.read(size - n)
+		left, e := networkConnection.read(size - n)
 		if e != nil {
 			return nil, Error("Failed to read packet size", e)
 		}
@@ -81,125 +81,125 @@ func (in *NetworkConnection) read(size int) ([]byte, error) {
 	return data, nil
 }
 
-func (in *NetworkConnection) nextPacket() error {
-	pSize, e := in.read(4)
+func (networkConnection *NetworkConnection) nextPacket() error {
+	pSize, e := networkConnection.read(4)
 	if pSize == nil || e != nil {
 		return e
 	}
 
 	size := int(binary.LittleEndian.Uint32(pSize))
 
-	data, e := in.read(size)
+	data, e := networkConnection.read(size)
 	if data == nil || e != nil {
 		return e
 	}
 
-	if in.networkNode.running {
-		in.mailbox.PushInbox(data, Priority(data))
+	if networkConnection.networkNode.running {
+		networkConnection.mailbox.PushInbox(data, Priority(data))
 	}
 	return nil
 }
 
-func (in *NetworkConnection) addPacketToOutbox(p *Packet) (error) {
+func (networkConnection *NetworkConnection) addPacketToOutbox(p *Packet) (error) {
 	start := time.Now().UnixNano()
 	data := p.Marshal()
 	end := time.Now().UnixNano()
-	in.statistics.AddTxTimeSync(end - start)
-	in.mailbox.PushOutbox(data, p.Priority())
+	networkConnection.statistics.AddTxTimeSync(end - start)
+	networkConnection.mailbox.PushOutbox(data, p.Priority())
 	return nil
 }
 
-func (in *NetworkConnection) newInterfacePacket(destination *ServiceID, messageID, packetID uint32, multi, persistence bool, priority int, data []byte) *Packet {
+func (networkConnection *NetworkConnection) newInterfacePacket(destination *ServiceID, messageID, packetID uint32, multi, persistence bool, priority int, data []byte) *Packet {
 	if destination != nil {
-		return NewPacket(in.networkNode.networkID, destination.NetworkID(), messageID, packetID, multi, persistence, priority, data)
+		return NewPacket(networkConnection.networkNode.networkID, destination.NetworkID(), messageID, packetID, multi, persistence, priority, data)
 	}
-	return NewPacket(in.networkNode.networkID, nil, messageID, packetID, multi, persistence, priority, data)
+	return NewPacket(networkConnection.networkNode.networkID, nil, messageID, packetID, multi, persistence, priority, data)
 }
 
-func (in *NetworkConnection) runIncomming() {
-	for ; in.networkNode.running; {
-		err := in.nextPacket()
+func (networkConnection *NetworkConnection) runIncomming() {
+	for ; networkConnection.networkNode.running; {
+		err := networkConnection.nextPacket()
 		if err != nil {
 			Error("Error reading from socket:", err)
 			break
 		}
 	}
-	Info("Read Interface from:" + in.peerNetworkID.String() + " was shutdown!")
+	Info("Read Interface from:" + networkConnection.peerNetworkID.String() + " was shutdown!")
 	Info("Statistics:")
-	Info(in.statistics.String())
-	in.isClosed = true
+	Info(networkConnection.statistics.String())
+	networkConnection.isClosed = true
 }
 
-func (in *NetworkConnection) runOutgoing() {
-	for ; in.networkNode.running; {
-		data := in.mailbox.PopOutbox()
-		err := in.write(data)
+func (networkConnection *NetworkConnection) runOutgoing() {
+	for ; networkConnection.networkNode.running; {
+		data := networkConnection.mailbox.PopOutbox()
+		err := networkConnection.write(data)
 		if err != nil {
 			Error("Error Sending to socket:", err)
 			break
 		}
 	}
-	Info("Write Interface to:" + in.peerNetworkID.String() + " was shutdown!")
-	in.isClosed = true
+	Info("Write Interface to:" + networkConnection.peerNetworkID.String() + " was shutdown!")
+	networkConnection.isClosed = true
 }
 
-func (in *NetworkConnection) handle() {
+func (networkConnection *NetworkConnection) handle() {
 	time.Sleep(time.Second)
-	for ; in.networkNode.running; {
-		data := in.mailbox.PopInbox()
+	for ; networkConnection.networkNode.running; {
+		data := networkConnection.mailbox.PopInbox()
 		if data != nil {
-			in.statistics.AddRxPackets(data)
-			in.networkNode.nSwitch.handlePacket(data, in.mailbox)
+			networkConnection.statistics.AddRxPackets(data)
+			networkConnection.networkNode.networkSwitch.handlePacket(data, networkConnection.mailbox)
 		} else {
 			break
 		}
 	}
-	Info("Handle Interface of:" + in.peerNetworkID.String() + " was shutdown!")
+	Info("Handle Interface of:" + networkConnection.peerNetworkID.String() + " was shutdown!")
 }
 
-func (in *NetworkConnection) start() {
-	go in.runIncomming()
-	go in.runOutgoing()
-	go in.handle()
+func (networkConnection *NetworkConnection) start() {
+	go networkConnection.runIncomming()
+	go networkConnection.runOutgoing()
+	go networkConnection.handle()
 }
 
-func (in *NetworkConnection) handshake() (bool, error) {
-	Info("Starting handshake process for:" + in.networkNode.networkID.String())
+func (networkConnection *NetworkConnection) handshake() (bool, error) {
+	Info("Starting handshake process for:" + networkConnection.networkNode.networkID.String())
 
-	packet := in.newInterfacePacket(nil, 0, 0, false, false, 0, HandShakeSignature)
+	packet := networkConnection.newInterfacePacket(nil, 0, 0, false, false, 0, HandShakeSignature)
 
 	sendData := packet.Marshal()
-	in.write(sendData)
+	networkConnection.write(sendData)
 
-	err := in.nextPacket()
+	err := networkConnection.nextPacket()
 	if err != nil {
 		return false, err
 	}
 
-	data := in.mailbox.PopInbox()
+	data := networkConnection.mailbox.PopInbox()
 
 	source, destination, multi, persist, priority, ba := UnmarshalHeaderOnly(data)
 	p := &Packet{}
 	p.Unmarshal(source, destination, multi, persist, priority, ba)
 
-	Info("handshaked "+in.networkNode.networkID.String()+" with nid:", p.Source().String())
-	in.peerNetworkID = p.Source()
-	if in.peerNetworkID.Host() != in.networkNode.networkID.Host() {
-		in.external = true
+	Info("handshaked "+networkConnection.networkNode.networkID.String()+" with nid:", p.Source().String())
+	networkConnection.peerNetworkID = p.Source()
+	if networkConnection.peerNetworkID.Host() != networkConnection.networkNode.networkID.Host() {
+		networkConnection.external = true
 	}
 
-	if in.peerNetworkID.Port() == SWITCH_PORT {
-		in.networkNode.switchNetworkID = in.peerNetworkID
+	if networkConnection.peerNetworkID.Port() == SWITCH_PORT {
+		networkConnection.networkNode.switchNetworkID = networkConnection.peerNetworkID
 	}
 
-	in.mailbox.SetName(in.peerNetworkID.String())
+	networkConnection.mailbox.SetName(networkConnection.peerNetworkID.String())
 
-	added := in.networkNode.nSwitch.addInterface(in)
+	added := networkConnection.networkNode.networkSwitch.addNetworkConnection(networkConnection)
 
 	return added, nil
 }
 
-func (in *NetworkConnection) Shutdown() {
-	in.connection.Close()
-	in.mailbox.Shutdown()
+func (networkConnection *NetworkConnection) Shutdown() {
+	networkConnection.connection.Close()
+	networkConnection.mailbox.Shutdown()
 }

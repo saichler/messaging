@@ -56,7 +56,7 @@ func (message *Message) Source() *ServiceID {
 }
 
 func (message *Message) Destination() *ServiceID {
-	return message.source
+	return message.destination
 }
 
 func (message *Message) OriginalSource() *ServiceID {

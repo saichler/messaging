@@ -7,8 +7,8 @@ const (
 	MAX_PORT         = 54000
 )
 
-var PUBLISH_HID = newPublishHabitatID()
-var UNREACH_HID = newDestUnreachableHabitatID()
+var PublishNetworkID = newPublishHabitatID()
+var UnreachableNetworkID = newDestUnreachableHabitatID()
 var MTU = 512
 var KEY = "bNhDNirkahDbiJJirSfaNNEXDprtwQoK"
 var ENCRYPTED = true

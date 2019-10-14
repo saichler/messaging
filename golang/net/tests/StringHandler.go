@@ -12,12 +12,14 @@ const (
 	REPLY   = "Reply"
 )
 
+var replyCount = 0
+var unreachCount = 0
+var myx = &sync.Mutex{}
+
 type StringMessageHandler struct {
-	node         *NetworkNode
-	replyCount   int
-	unreachCount int
-	print        bool
-	myx          *sync.Mutex
+	node *NetworkNode
+
+	print bool
 }
 
 func NewStringMessageHandler() *StringMessageHandler {
@@ -28,12 +30,11 @@ func NewStringMessageHandler() *StringMessageHandler {
 		panic(e)
 	}
 	sfh.node = node
-	sfh.myx = &sync.Mutex{}
 	return sfh
 }
 
 func (sfh *StringMessageHandler) HandleUnreachable(message *Message) {
-	sfh.unreachCount++
+	unreachCount++
 	Info("Handled Unreachable!!!!")
 }
 
@@ -45,9 +46,9 @@ func (sfh *StringMessageHandler) HandleMessage(message *Message) {
 		}
 		sfh.ReplyString(str, sfh.node, message.Source())
 	} else {
-		sfh.myx.Lock()
-		sfh.replyCount++
-		sfh.myx.Unlock()
+		myx.Lock()
+		replyCount++
+		myx.Unlock()
 		if sfh.print {
 			Info("Reply: " + str + " to:" + message.Destination().String())
 		}

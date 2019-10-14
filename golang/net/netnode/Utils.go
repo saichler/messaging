@@ -63,7 +63,7 @@ func (networkConnection *NetworkConnection) DecodeMessage(p *Packet, m *Message,
 	m.SetComplete(messageComplete)
 
 	if messageComplete {
-		if p.Destination().Equal(UNREACH_HID) {
+		if p.Destination().Equal(UnreachableNetworkID) {
 		} else {
 			ba := NewByteSliceWithData(messageData, 0)
 			m.Unmarshal(ba)

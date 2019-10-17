@@ -60,9 +60,9 @@ func (smh *StringMessageHandler) SendString(str string, dest *ServiceID) {
 		Debug("Sending Request:" + str)
 	}
 	if dest == nil {
-		dest = NewServiceID(smh.node.SwitchNetworkID(), "")
+		dest = NewServiceID(smh.node.SwitchNetworkID(), "",0)
 	}
-	source := NewServiceID(smh.node.NetworkID(), "")
+	source := NewServiceID(smh.node.NetworkID(), "",0)
 	message := smh.node.NewMessage(source, dest, source, REQUEST, 0, []byte(str))
 	smh.node.SendMessage(message)
 }
@@ -72,9 +72,9 @@ func (sfh *StringMessageHandler) ReplyString(str string, node *NetworkNode, dest
 		Debug("Sending Reply:" + str + " to:" + dest.String())
 	}
 	if dest == nil {
-		dest = NewServiceID(node.SwitchNetworkID(), "")
+		dest = NewServiceID(node.SwitchNetworkID(), "",0)
 	}
-	source := NewServiceID(node.NetworkID(), "")
+	source := NewServiceID(node.NetworkID(), "",0)
 	message := node.NewMessage(source, dest, source, REPLY, 0, []byte(str))
 
 	node.SendMessage(message)

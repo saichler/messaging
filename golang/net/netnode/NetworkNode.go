@@ -16,6 +16,7 @@ type NetworkNode struct {
 	isNetworkSwitch bool
 	networkSwitch   *NetworkSwitch
 	socket          net.Listener
+	port            int
 	switchNetworkID *NetworkID
 	lock            *sync.Cond
 	nextMessageID   uint32
@@ -46,6 +47,7 @@ func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
 		}
 	}
 	networkNode.socket = socket
+	networkNode.port = port
 	networkNode.networkSwitch = newSwitch(networkNode)
 	networkNode.start()
 	return networkNode, nil
@@ -188,7 +190,7 @@ func (networkNode *NetworkNode) NetworkID() *NetworkID {
 }
 
 func (networkNode *NetworkNode) ServiceID() *ServiceID {
-	return NewServiceID(networkNode.networkID, "Network Node")
+	return NewServiceID(networkNode.networkID, "", 0)
 }
 
 func (networkNode *NetworkNode) NextMessageID() uint32 {
@@ -211,4 +213,8 @@ func (networkNode *NetworkNode) WaitForShutdown() {
 
 func (networkNode *NetworkNode) Running() bool {
 	return networkNode.running
+}
+
+func (networkNode *NetworkNode) Port() int {
+	return networkNode.port
 }

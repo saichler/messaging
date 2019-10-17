@@ -180,7 +180,7 @@ func TestNetworkNodeAndMessageScale(t *testing.T) {
 
 func TestPublish(t *testing.T) {
 
-	publishID := NewServiceID(PublishNetworkID, "publish")
+	publishID := NewServiceID(PublishNetworkID, "publish",0)
 
 	replyCount = 0
 	MTU = 512
@@ -287,7 +287,7 @@ func TestDestinationUnreachable(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	unreachInternal := NewServiceID(NewNetworkID(GetLocalIpAddress(), 52005), "")
+	unreachInternal := NewServiceID(NewNetworkID(GetLocalIpAddress(), 52005), "",0)
 
 	h1.SendString("Hello World", unreachInternal)
 	h2.SendString("Hello World", unreachInternal)
@@ -312,7 +312,7 @@ func TestMultiPartUnreachable(t *testing.T) {
 	h2 := NewStringMessageHandler()
 
 	time.Sleep(time.Second * 2)
-	unreachInternal := NewServiceID(NewNetworkID(GetLocalIpAddress(), 52005), "")
+	unreachInternal := NewServiceID(NewNetworkID(GetLocalIpAddress(), 52005), "",0)
 	h2.SendString("Hello World", unreachInternal)
 
 	time.Sleep(time.Second * 2)

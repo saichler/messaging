@@ -81,7 +81,7 @@ func (mailbox *Mailbox) AddPacket(packet *Packet) ([]byte, bool) {
 		for i := 0; i < int(mp.totalExpectedPackets); i++ {
 			qp := mp.packets.Get(i).(*Packet)
 			if qp.PacketID() != 0 {
-				start := int((qp.PacketID() - 1) * uint32(MTU))
+				start := int((qp.PacketID() - 1) * uint32(NetConfig.MTU()))
 				end := start + len(qp.Data())
 				copy(messageData[start:end], qp.Data()[:])
 			}

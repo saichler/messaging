@@ -85,13 +85,13 @@ func (networkSwitch *NetworkSwitch) sendUnreachable(source *NetworkID, priority 
 	if networkConnection == nil {
 		return
 	}
-	p := NewPacket(source, UnreachableNetworkID, 0, 0, false, false, 0, data)
+	p := NewPacket(source, NetConfig.UnreachableID(), 0, 0, false, false, 0, data)
 	networkConnection.mailbox.PushOutbox(p.Marshal(), priority)
 }
 
 func (networkSwitch *NetworkSwitch) handlePacket(data []byte, networkConnection *NetworkConnection) error {
 	source, destination, multi, persist, priority, ba := UnmarshalHeaderOnly(data)
-	if destination.Equal(UnreachableNetworkID) {
+	if destination.Equal(NetConfig.UnreachableID()) {
 		if source.Equal(networkSwitch.netowrkNode.networkID) {
 			networkSwitch.handleMyPacket(source, destination, multi, persist, priority, data, ba, networkConnection, true)
 

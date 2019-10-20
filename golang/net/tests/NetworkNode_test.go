@@ -22,9 +22,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestNetworkNode(t *testing.T) {
-	MTU = 512
+	NetConfig.Set(512, false)
 	replyCount = 0
-	ENCRYPTED = false
 	h1 := NewStringMessageHandler()
 	h2 := NewStringMessageHandler()
 
@@ -49,9 +48,7 @@ func TestNetworkNode(t *testing.T) {
 
 func TestSwitch(t *testing.T) {
 	replyCount = 0
-	MTU = 512
-	//ENCRYPTED=true
-	//ENCRYPTED=false
+	NetConfig.Set(512, false)
 	s := NewStringMessageHandler()
 	h1 := NewStringMessageHandler()
 	h2 := NewStringMessageHandler()
@@ -78,8 +75,7 @@ func TestSwitch(t *testing.T) {
 
 func TestMultiPart(t *testing.T) {
 	replyCount = 0
-	MTU = 4
-	ENCRYPTED = false
+	NetConfig.Set(4, false)
 	h1 := NewStringMessageHandler()
 	h2 := NewStringMessageHandler()
 
@@ -104,8 +100,7 @@ func TestMultiPart(t *testing.T) {
 
 func TestMessageScale(t *testing.T) {
 	replyCount = 0
-	MTU = 512
-	ENCRYPTED = false
+	NetConfig.Set(512, false)
 	numOfMessages := 10000
 	numOfNodes := 3
 
@@ -145,8 +140,7 @@ func sendScale(h1, h2 *StringMessageHandler, size int) {
 
 func TestNetworkNodeAndMessageScale(t *testing.T) {
 	replyCount = 0
-	MTU = 512
-	ENCRYPTED = false
+	NetConfig.Set(512, false)
 	numOfMessages := 10000
 	numOfNodes := 50
 
@@ -179,12 +173,9 @@ func TestNetworkNodeAndMessageScale(t *testing.T) {
 }
 
 func TestPublish(t *testing.T) {
-
-	publishID := NewServiceID(PublishNetworkID, "publish",0)
-
+	NetConfig.Set(512, false)
+	publishID := NewServiceID(NetConfig.PublishID(), "publish", 0)
 	replyCount = 0
-	MTU = 512
-	ENCRYPTED = false
 	numOfNodes := 50
 
 	handlers := make([]*StringMessageHandler, numOfNodes)
@@ -215,9 +206,8 @@ func TestPublish(t *testing.T) {
 }
 
 func TestNetworkNodeEncrypted(t *testing.T) {
-	MTU = 512
+	NetConfig.Set(512, true)
 	replyCount = 0
-	ENCRYPTED = true
 	h1 := NewStringMessageHandler()
 	h2 := NewStringMessageHandler()
 
@@ -241,8 +231,7 @@ func TestNetworkNodeEncrypted(t *testing.T) {
 
 func TestNetworkNodeAndMessageScaleSecure(t *testing.T) {
 	replyCount = 0
-	MTU = 512
-	ENCRYPTED = true
+	NetConfig.Set(512, true)
 	numOfMessages := 10000
 	numOfNodes := 50
 
@@ -278,8 +267,7 @@ func TestNetworkNodeAndMessageScaleSecure(t *testing.T) {
 func TestDestinationUnreachable(t *testing.T) {
 	unreachCount = 0
 	replyCount = 0
-	MTU = 512
-	ENCRYPTED = false
+	NetConfig.Set(512, false)
 	h1 := NewStringMessageHandler()
 	h2 := NewStringMessageHandler()
 
@@ -287,7 +275,7 @@ func TestDestinationUnreachable(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	unreachInternal := NewServiceID(NewNetworkID(GetLocalIpAddress(), 52005), "",0)
+	unreachInternal := NewServiceID(NewNetworkID(GetLocalIpAddress(), 52005), "", 0)
 
 	h1.SendString("Hello World", unreachInternal)
 	h2.SendString("Hello World", unreachInternal)
@@ -306,13 +294,12 @@ func TestDestinationUnreachable(t *testing.T) {
 func TestMultiPartUnreachable(t *testing.T) {
 	unreachCount = 0
 	replyCount = 0
-	MTU = 4
-	ENCRYPTED = false
+	NetConfig.Set(4, false)
 	h1 := NewStringMessageHandler()
 	h2 := NewStringMessageHandler()
 
 	time.Sleep(time.Second * 2)
-	unreachInternal := NewServiceID(NewNetworkID(GetLocalIpAddress(), 52005), "",0)
+	unreachInternal := NewServiceID(NewNetworkID(GetLocalIpAddress(), 52005), "", 0)
 	h2.SendString("Hello World", unreachInternal)
 
 	time.Sleep(time.Second * 2)
@@ -329,15 +316,14 @@ func TestMultiPartUnreachable(t *testing.T) {
 func TestShutdown(t *testing.T) {
 	unreachCount = 0
 	replyCount = 0
-	MTU = 4
-	ENCRYPTED = false
+	NetConfig.Set(4, false)
 	h1 := NewStringMessageHandler()
 	h2 := NewStringMessageHandler()
 
-	time.Sleep(time.Second*3)
+	time.Sleep(time.Second * 3)
 
 	h1.node.Shutdown()
 	h2.node.Shutdown()
 
-	time.Sleep(time.Second*5)
+	time.Sleep(time.Second * 5)
 }

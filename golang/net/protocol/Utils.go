@@ -10,8 +10,8 @@ import (
 import . "github.com/saichler/utils/golang"
 
 func encrypt(data []byte) ([]byte) {
-	if ENCRYPTED {
-		encData, err := Encode(data, KEY)
+	if NetConfig.Encrypted() {
+		encData, err := Encode(data, NetConfig.EncKey())
 		if err != nil {
 			Error("Failed to encrypt data, sending unsecure!", err)
 			return data
@@ -23,8 +23,8 @@ func encrypt(data []byte) ([]byte) {
 }
 
 func decrypt(data []byte) []byte {
-	if ENCRYPTED {
-		decryData, err := Decode(data, KEY)
+	if NetConfig.Encrypted() {
+		decryData, err := Decode(data, NetConfig.EncKey())
 		if err != nil {
 			panic("Failed to decrypt data!")
 			return data
@@ -35,22 +35,8 @@ func decrypt(data []byte) []byte {
 	return data
 }
 
-func NewLocalNetworkID(port int) *NetworkID {
+func NewLocalNetworkID(port int32) *NetworkID {
 	return NewNetworkID(GetLocalIpAddress(), port)
-}
-
-func newPublishHabitatID() *NetworkID {
-	newHID := &NetworkID{}
-	newHID.most = PUBLISH_MARK
-	newHID.less = PUBLISH_MARK
-	return newHID
-}
-
-func newDestUnreachableHabitatID() *NetworkID {
-	newHID := &NetworkID{}
-	newHID.most = UNREACHABLE_MARK
-	newHID.less = UNREACHABLE_MARK
-	return newHID
 }
 
 func GetLocalIpAddress() string {
@@ -103,4 +89,8 @@ func Priority(data []byte) int {
 	p := 0
 	_, _, p = Decode2BoolAndUInt6(data[32])
 	return p
+}
+
+func NewPublishServiceID(topic string) *ServiceID {
+	return NewServiceID(NetConfig.publishID, topic, 0)
 }

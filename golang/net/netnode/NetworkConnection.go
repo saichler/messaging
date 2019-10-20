@@ -143,7 +143,7 @@ func (networkConnection *NetworkConnection) runOutgoing() {
 	networkConnection.isClosed = true
 }
 
-func (networkConnection *NetworkConnection) handle() {
+func (networkConnection *NetworkConnection) deserializeMux() {
 	time.Sleep(time.Second)
 	for ; networkConnection.networkNode.running; {
 		data := networkConnection.mailbox.PopInbox()
@@ -160,13 +160,15 @@ func (networkConnection *NetworkConnection) handle() {
 func (networkConnection *NetworkConnection) start() {
 	go networkConnection.runIncomming()
 	go networkConnection.runOutgoing()
-	go networkConnection.handle()
+	for i := 0; i < NetConfig.Deserialize(); i++ {
+		go networkConnection.deserializeMux()
+	}
 }
 
 func (networkConnection *NetworkConnection) handshake() (bool, error) {
 	Info("Starting handshake process for:" + networkConnection.networkNode.networkID.String())
 
-	packet := networkConnection.newInterfacePacket(nil, 0, 0, false, false, 0, HandShakeSignature)
+	packet := networkConnection.newInterfacePacket(nil, 0, 0, false, false, 0, NetConfig.Handshake())
 
 	sendData := packet.Marshal()
 	networkConnection.write(sendData)
@@ -188,7 +190,7 @@ func (networkConnection *NetworkConnection) handshake() (bool, error) {
 		networkConnection.external = true
 	}
 
-	if networkConnection.peerNetworkID.Port() == SWITCH_PORT {
+	if networkConnection.peerNetworkID.Port() == NetConfig.SwitchPort() {
 		networkConnection.networkNode.switchNetworkID = networkConnection.peerNetworkID
 	}
 

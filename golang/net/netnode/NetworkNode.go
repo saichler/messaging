@@ -16,7 +16,7 @@ type NetworkNode struct {
 	isNetworkSwitch bool
 	networkSwitch   *NetworkSwitch
 	socket          net.Listener
-	port            int
+	port            int32
 	switchNetworkID *NetworkID
 	lock            *sync.Cond
 	nextMessageID   uint32
@@ -37,7 +37,7 @@ func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
 	} else {
 		networkNode.networkID = NewLocalNetworkID(port)
 		Debug("Bounded to ", networkNode.networkID.String())
-		networkNode.isNetworkSwitch = port == SWITCH_PORT
+		networkNode.isNetworkSwitch = port == NetConfig.SwitchPort()
 		if !networkNode.isNetworkSwitch {
 			e := networkNode.uplinkToSwitch()
 			for ; e != nil; {
@@ -105,7 +105,7 @@ func (networkNode *NetworkNode) newNetworkConnection(c net.Conn) (*NetworkID, er
 }
 
 func (networkNode *NetworkNode) uplinkToSwitch() error {
-	switchPortString := strconv.Itoa(SWITCH_PORT)
+	switchPortString := strconv.Itoa(int(NetConfig.SwitchPort()))
 	c, e := net.Dial("tcp", "127.0.0.1:"+switchPortString)
 	if e != nil {
 		Error("Failed to open connection to switch: ", e)
@@ -116,7 +116,7 @@ func (networkNode *NetworkNode) uplinkToSwitch() error {
 }
 
 func (networkNode *NetworkNode) Uplink(host string) *NetworkID {
-	switchPortString := strconv.Itoa(SWITCH_PORT)
+	switchPortString := strconv.Itoa(int(NetConfig.SwitchPort()))
 	c, e := net.Dial("tcp", host+":"+switchPortString)
 	if e != nil {
 		Error("Failed to open connection to host: "+host, e)
@@ -215,6 +215,6 @@ func (networkNode *NetworkNode) Running() bool {
 	return networkNode.running
 }
 
-func (networkNode *NetworkNode) Port() int {
+func (networkNode *NetworkNode) Port() int32 {
 	return networkNode.port
 }

@@ -11,7 +11,7 @@ type NetworkID struct {
 	less int64
 }
 
-func NewNetworkID(ipv4 string, port int) *NetworkID {
+func NewNetworkID(ipv4 string, port int32) *NetworkID {
 	newHID := &NetworkID{}
 	ip := GetIpAsInt32(ipv4)
 	newHID.most = 0;
@@ -62,14 +62,14 @@ func (networkID *NetworkID) Equal(other *NetworkID) bool {
 }
 
 func (networkID *NetworkID) Publish() bool {
-	if networkID.most == PUBLISH_MARK {
+	if networkID.most == NetConfig.publishId {
 		return true
 	}
 	return false
 }
 
 func (networkID *NetworkID) Unreachable() bool {
-	if networkID.most == UNREACHABLE_MARK {
+	if networkID.most == NetConfig.unreachableId {
 		return true
 	}
 	return false

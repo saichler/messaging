@@ -8,26 +8,26 @@ import (
 	"strconv"
 )
 
-func bind() (net.Listener, int, error) {
-	port := SWITCH_PORT
+func bind() (net.Listener, int32, error) {
+	port := NetConfig.SwitchPort()
 
-	Debug("Trying to bind to switch port " + strconv.Itoa(port) + ".");
-	socket, e := net.Listen("tcp", ":"+strconv.Itoa(port))
+	Debug("Trying to bind to switch port ", strconv.Itoa(int(port)), ".");
+	socket, e := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
 
 	if e != nil {
-		for ; port < MAX_PORT && e != nil; port++ {
-			Debug("Trying to bind to port " + strconv.Itoa(port) + ".")
-			s, err := net.Listen("tcp", ":"+strconv.Itoa(port))
+		for ; port < NetConfig.MaxSwitchPort() && e != nil; port++ {
+			Debug("Trying to bind to port " + strconv.Itoa(int(port)) + ".")
+			s, err := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
 			e = err
 			socket = s
 			if e == nil {
 				break
 			}
 		}
-		Debug("Successfuly binded to port " + strconv.Itoa(port))
+		Debug("Successfuly binded to port " + strconv.Itoa(int(port)))
 	}
 
-	if port >= MAX_PORT {
+	if port >= NetConfig.MaxSwitchPort() {
 		return nil, -1, errors.New("Failed to find an available port to bind to")
 	}
 
@@ -63,7 +63,7 @@ func (networkConnection *NetworkConnection) DecodeMessage(p *Packet, m *Message,
 	m.SetComplete(messageComplete)
 
 	if messageComplete {
-		if p.Destination().Equal(UnreachableNetworkID) {
+		if p.Destination().Equal(NetConfig.UnreachableID()) {
 		} else {
 			ba := NewByteSliceWithData(messageData, 0)
 			m.Unmarshal(ba)
@@ -76,10 +76,12 @@ func (networkConnection *NetworkConnection) SendMessage(message *Message) error 
 	networkConnection.statistics.AddTxMessages()
 	messageData := message.Marshal()
 
-	if len(messageData) > MTU {
+	mtu := NetConfig.MTU()
 
-		totalParts := len(messageData) / MTU
-		left := len(messageData) - totalParts*MTU
+	if len(messageData) > mtu {
+
+		totalParts := len(messageData) / mtu
+		left := len(messageData) - totalParts*mtu
 
 		if left > 0 {
 			totalParts++
@@ -102,10 +104,10 @@ func (networkConnection *NetworkConnection) SendMessage(message *Message) error 
 		}
 
 		for i := 0; i < totalParts-1; i++ {
-			loc := i * MTU
+			loc := i * mtu
 			var packetData []byte
 			if i < totalParts-2 || left == 0 {
-				packetData = messageData[loc : loc+MTU]
+				packetData = messageData[loc : loc+mtu]
 			} else {
 				packetData = messageData[loc : loc+left]
 			}

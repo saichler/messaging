@@ -20,13 +20,13 @@ type NetworkNode struct {
 	switchNetworkID *NetworkID
 	lock            *sync.Cond
 	nextMessageID   uint32
-	running         bool
+	active          bool
 }
 
 func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
 	networkNode := &NetworkNode{}
 	networkNode.lock = sync.NewCond(&sync.Mutex{})
-	networkNode.running = true
+	networkNode.active = true
 	networkNode.messageHandler = handler
 
 	socket, port, e := bind()
@@ -54,7 +54,7 @@ func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
 }
 
 func (networkNode *NetworkNode) Shutdown() {
-	networkNode.running = false
+	networkNode.active = false
 	net.Dial("tcp", "127.0.0.1:"+strconv.Itoa(int(networkNode.networkID.Port())))
 	networkNode.networkSwitch.shutdown()
 	networkNode.lock.L.Lock()
@@ -68,12 +68,12 @@ func (networkNode *NetworkNode) start() {
 }
 
 func (networkNode *NetworkNode) waitForlinks() {
-	if networkNode.running {
+	if networkNode.active {
 		Info("Habitat ", networkNode.networkID.String(), " is waiting for links")
 	}
-	for ; networkNode.running; {
+	for ; networkNode.active; {
 		connection, error := networkNode.socket.Accept()
-		if !networkNode.running {
+		if !networkNode.active {
 			break
 		}
 		if error != nil {
@@ -209,10 +209,6 @@ func (networkNode *NetworkNode) WaitForShutdown() {
 	networkNode.lock.L.Lock()
 	networkNode.lock.Wait()
 	networkNode.lock.L.Unlock()
-}
-
-func (networkNode *NetworkNode) Running() bool {
-	return networkNode.running
 }
 
 func (networkNode *NetworkNode) Port() int32 {

@@ -19,10 +19,12 @@ type NetworkConnection struct {
 	mailbox       *Mailbox
 	statistics    *NetworkInterfaceStatistics
 	isClosed      bool
+	active        bool
 }
 
 func newNetworkConnection(connection net.Conn, networkNode *NetworkNode) *NetworkConnection {
 	networkConnection := &NetworkConnection{}
+	networkConnection.active = true
 	networkConnection.connection = connection
 	networkConnection.networkNode = networkNode
 	networkConnection.mailbox = NewMailbox()
@@ -57,7 +59,7 @@ func (networkConnection *NetworkConnection) read(size int) ([]byte, error) {
 	data := make([]byte, size)
 	n, e := networkConnection.connection.Read(data)
 
-	if !networkConnection.networkNode.running {
+	if !networkConnection.active {
 		return nil, nil
 	}
 
@@ -94,7 +96,7 @@ func (networkConnection *NetworkConnection) nextPacket() error {
 		return e
 	}
 
-	if networkConnection.networkNode.running {
+	if networkConnection.active {
 		networkConnection.mailbox.PushInbox(data, Priority(data))
 	}
 	return nil
@@ -117,7 +119,7 @@ func (networkConnection *NetworkConnection) newInterfacePacket(destination *Serv
 }
 
 func (networkConnection *NetworkConnection) runIncomming() {
-	for ; networkConnection.networkNode.running; {
+	for networkConnection.active {
 		err := networkConnection.nextPacket()
 		if err != nil {
 			Error("Error reading from socket:", err)
@@ -131,7 +133,7 @@ func (networkConnection *NetworkConnection) runIncomming() {
 }
 
 func (networkConnection *NetworkConnection) runOutgoing() {
-	for ; networkConnection.networkNode.running; {
+	for networkConnection.active {
 		data := networkConnection.mailbox.PopOutbox()
 		err := networkConnection.write(data)
 		if err != nil {
@@ -145,7 +147,7 @@ func (networkConnection *NetworkConnection) runOutgoing() {
 
 func (networkConnection *NetworkConnection) deserializeMux() {
 	time.Sleep(time.Second)
-	for ; networkConnection.networkNode.running; {
+	for networkConnection.active {
 		data := networkConnection.mailbox.PopInbox()
 		if data != nil {
 			networkConnection.statistics.AddRxPackets(data)
@@ -202,6 +204,7 @@ func (networkConnection *NetworkConnection) handshake() (bool, error) {
 }
 
 func (networkConnection *NetworkConnection) Shutdown() {
+	networkConnection.active = false
 	networkConnection.connection.Close()
 	networkConnection.mailbox.Shutdown()
 }

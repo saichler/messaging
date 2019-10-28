@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"bytes"
+	"fmt"
 	. "github.com/saichler/utils/golang"
 	"strconv"
 )
@@ -44,10 +45,9 @@ func (sid *ServiceID) Unreachable() bool {
 func (sid *ServiceID) String() string {
 	buff := bytes.Buffer{}
 	buff.WriteString(sid.networkID.String())
-	buff.WriteString("[")
+	buff.WriteString("[T=")
 	buff.WriteString(sid.topic)
-	buff.WriteString("]")
-	buff.WriteString("[")
+	buff.WriteString(",D=")
 	buff.WriteString(strconv.Itoa(int(sid.id)))
 	buff.WriteString("]")
 	return buff.String()
@@ -63,4 +63,22 @@ func (sid *ServiceID) Topic() string {
 
 func (sid *ServiceID) ID() uint16 {
 	return sid.id
+}
+
+func (serviceID *ServiceID) Parse(str string) error {
+	serviceID.networkID = &NetworkID{}
+	e := serviceID.networkID.Parse(str)
+	if e != nil {
+		fmt.Println(serviceID.networkID.String())
+		return e
+	}
+
+	serviceID.topic = GetTagValue(str, "T")
+	idString := GetTagValue(str, "D")
+	id, e := strconv.Atoi(idString)
+	if e != nil {
+		return e
+	}
+	serviceID.id = uint16(id)
+	return nil
 }

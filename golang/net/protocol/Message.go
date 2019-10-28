@@ -12,11 +12,13 @@ type Message struct {
 	topic          string
 	data           []byte
 	priority       int
-	complete       bool
-	unreachable    bool
+	isReply        bool
+
+	complete    bool
+	unreachable bool
 }
 
-func NewMessage(source, destination, originalSource *ServiceID, messageID uint32, topic string, priority int, data []byte) *Message {
+func NewMessage(source, destination, originalSource *ServiceID, messageID uint32, topic string, priority int, data []byte, isReply bool) *Message {
 	message := &Message{}
 	message.source = source
 	message.destination = destination
@@ -25,6 +27,7 @@ func NewMessage(source, destination, originalSource *ServiceID, messageID uint32
 	message.topic = topic
 	message.priority = priority
 	message.data = data
+	message.isReply = isReply
 	return message
 }
 
@@ -35,6 +38,7 @@ func (message *Message) Marshal() []byte {
 	message.originalSource.Marshal(ba)
 	ba.AddUInt32(message.messageID)
 	ba.AddString(message.topic)
+	ba.AddBool(message.isReply)
 	ba.AddByteSlice(message.data)
 	return ba.Data()
 }
@@ -48,6 +52,7 @@ func (message *Message) Unmarshal(ba *ByteSlice) {
 	message.originalSource.Unmarshal(ba)
 	message.messageID = ba.GetUInt32()
 	message.topic = ba.GetString()
+	message.isReply = ba.GetBool()
 	message.data = ba.GetByteSlice()
 }
 
@@ -97,4 +102,8 @@ func (message *Message) Unreachable() bool {
 
 func (message *Message) Publish() bool {
 	return message.destination.Publish()
+}
+
+func (message *Message) IsReply() bool {
+	return message.isReply
 }

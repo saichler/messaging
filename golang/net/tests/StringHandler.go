@@ -7,11 +7,6 @@ import (
 	"sync"
 )
 
-const (
-	REQUEST = "Request"
-	REPLY   = "Reply"
-)
-
 var replyCount = 0
 var unreachCount = 0
 var myx = &sync.Mutex{}
@@ -40,7 +35,7 @@ func (sfh *StringMessageHandler) HandleUnreachable(message *Message) {
 
 func (sfh *StringMessageHandler) HandleMessage(message *Message) {
 	str := string(message.Data())
-	if message.Topic() == REQUEST {
+	if !message.IsReply() {
 		if sfh.print {
 			Info("Request: " + str + " from:" + message.Source().String())
 		}
@@ -60,10 +55,10 @@ func (smh *StringMessageHandler) SendString(str string, dest *ServiceID) {
 		Debug("Sending Request:" + str)
 	}
 	if dest == nil {
-		dest = NewServiceID(smh.node.SwitchNetworkID(), "",0)
+		dest = NewServiceID(smh.node.SwitchNetworkID(), "", 0)
 	}
-	source := NewServiceID(smh.node.NetworkID(), "",0)
-	message := smh.node.NewMessage(source, dest, source, REQUEST, 0, []byte(str))
+	source := NewServiceID(smh.node.NetworkID(), "", 0)
+	message := smh.node.NewMessage(source, dest, source, "StringTest", 0, []byte(str), false)
 	smh.node.SendMessage(message)
 }
 
@@ -72,10 +67,10 @@ func (sfh *StringMessageHandler) ReplyString(str string, node *NetworkNode, dest
 		Debug("Sending Reply:" + str + " to:" + dest.String())
 	}
 	if dest == nil {
-		dest = NewServiceID(node.SwitchNetworkID(), "",0)
+		dest = NewServiceID(node.SwitchNetworkID(), "", 0)
 	}
-	source := NewServiceID(node.NetworkID(), "",0)
-	message := node.NewMessage(source, dest, source, REPLY, 0, []byte(str))
+	source := NewServiceID(node.NetworkID(), "", 0)
+	message := node.NewMessage(source, dest, source, "StringTest", 0, []byte(str), true)
 
 	node.SendMessage(message)
 }

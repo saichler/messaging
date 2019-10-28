@@ -201,8 +201,8 @@ func (networkNode *NetworkNode) NextMessageID() uint32 {
 	return result
 }
 
-func (networkNode *NetworkNode) NewMessage(source, destination, origin *ServiceID, topic string, priority int, data []byte) *Message {
-	return NewMessage(source, destination, origin, networkNode.NextMessageID(), topic, priority, data)
+func (networkNode *NetworkNode) NewMessage(source, destination, origin *ServiceID, topic string, priority int, data []byte,isReply bool) *Message {
+	return NewMessage(source, destination, origin, networkNode.NextMessageID(), topic, priority, data,isReply)
 }
 
 func (networkNode *NetworkNode) WaitForShutdown() {

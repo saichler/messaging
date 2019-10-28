@@ -70,19 +70,31 @@ func GetIpAsString(ip int32) string {
 	return a + "." + b + "." + c + "." + d
 }
 
-func GetIpAsInt32(ipaddr string) int32 {
+func GetIpAsInt32(ipaddr string) (int32, error) {
 	var ipint int32
 	arr := strings.Split(ipaddr, ".")
 	ipint = 0
-	a, _ := strconv.Atoi(arr[0])
-	b, _ := strconv.Atoi(arr[1])
-	c, _ := strconv.Atoi(arr[2])
-	d, _ := strconv.Atoi(strings.Split(arr[3], "/")[0])
+	a, e := strconv.Atoi(arr[0])
+	if e != nil {
+		return -1, e
+	}
+	b, e := strconv.Atoi(arr[1])
+	if e != nil {
+		return -1, e
+	}
+	c, e := strconv.Atoi(arr[2])
+	if e != nil {
+		return -1, e
+	}
+	d, e := strconv.Atoi(strings.Split(arr[3], "/")[0])
+	if e != nil {
+		return -1, e
+	}
 	ipint += int32(a) << 24
 	ipint += int32(b) << 16
 	ipint += int32(c) << 8
 	ipint += int32(d)
-	return ipint
+	return ipint, nil
 }
 
 func Priority(data []byte) int {

@@ -88,11 +88,7 @@ func (networkConnection *NetworkConnection) SendMessage(message *Message) error 
 		}
 
 		totalParts++
-
-		if totalParts > 1000 {
-			Info("Large Message, total parts:" + strconv.Itoa(totalParts))
-		}
-
+		
 		ba := ByteSlice{}
 		ba.AddUInt32(uint32(totalParts))
 		ba.AddUInt32(uint32(len(messageData)))

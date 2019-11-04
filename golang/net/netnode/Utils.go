@@ -113,9 +113,7 @@ func (networkConnection *NetworkConnection) SendMessage(message *Message) error 
 			}
 
 			packet := networkConnection.newInterfacePacket(message.Destination(), message.MessageID(), uint32(i+1), true, false, 0, packetData)
-			if i%1000 == 0 {
-				Info("Sent " + strconv.Itoa(i) + " packets out of " + strconv.Itoa(totalParts))
-			}
+
 			err = networkConnection.addPacketToOutbox(packet)
 			if err != nil {
 				Error("Was able to send only" + strconv.Itoa(i) + " packets")

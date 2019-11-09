@@ -88,7 +88,7 @@ func (networkConnection *NetworkConnection) SendMessage(message *Message) error 
 		}
 
 		totalParts++
-		
+
 		ba := ByteSlice{}
 		ba.AddUInt32(uint32(totalParts))
 		ba.AddUInt32(uint32(len(messageData)))

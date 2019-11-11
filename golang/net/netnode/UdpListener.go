@@ -1,6 +1,7 @@
 package netnode
 
 import (
+	"fmt"
 	"github.com/saichler/messaging/golang/net/protocol"
 	utils "github.com/saichler/utils/golang"
 	"net"
@@ -34,6 +35,7 @@ func (netNode *NetworkNode) listenForUDPBroadcast() {
 		}
 		time.Sleep(time.Second * 5)
 	}
+	utils.Error("Stop sending ping")
 }
 
 func (netNode *NetworkNode) waitForBroadcast(addr *net.UDPAddr, size int) {
@@ -57,6 +59,7 @@ func (netNode *NetworkNode) receive(data []byte) {
 	bs := utils.NewByteSliceWithData(data, 0)
 	nid := &protocol.NetworkID{}
 	nid.Unmarshal(bs)
+	fmt.Println("Ping from:" + protocol.GetIpAsString(nid.Host()))
 	if !nid.Equal(netNode.networkID) && nid.Host() > netNode.networkID.Host() {
 		netNode.checkForUplink(nid)
 	}

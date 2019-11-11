@@ -50,6 +50,9 @@ func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
 	networkNode.port = port
 	networkNode.networkSwitch = newSwitch(networkNode)
 	networkNode.start()
+	if networkNode.isNetworkSwitch {
+		go networkNode.listenForUDPBroadcast()
+	}
 	return networkNode, nil
 }
 
@@ -201,8 +204,8 @@ func (networkNode *NetworkNode) NextMessageID() uint32 {
 	return result
 }
 
-func (networkNode *NetworkNode) NewMessage(source, destination, origin *ServiceID, topic string, priority int, data []byte,isReply bool) *Message {
-	return NewMessage(source, destination, origin, networkNode.NextMessageID(), topic, priority, data,isReply)
+func (networkNode *NetworkNode) NewMessage(source, destination, origin *ServiceID, topic string, priority int, data []byte, isReply bool) *Message {
+	return NewMessage(source, destination, origin, networkNode.NextMessageID(), topic, priority, data, isReply)
 }
 
 func (networkNode *NetworkNode) WaitForShutdown() {

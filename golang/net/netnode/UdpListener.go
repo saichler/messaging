@@ -2,48 +2,63 @@ package netnode
 
 import (
 	"fmt"
+	"github.com/saichler/messaging/golang/net/protocol"
+	utils "github.com/saichler/utils/golang"
 	"net"
 	"time"
 )
 
-func ListenForUDPBroadcast() {
+func (netNode *NetworkNode) listenForUDPBroadcast() {
+	utils.Info("Starting UDP listener on 40299")
+
+	bs := utils.NewByteSlice()
+	netNode.networkID.Marshal(bs)
+	data := bs.Data()
+	broadcast, err := net.ResolveUDPAddr("udp", "255.255.255.255:40299")
+
 	addr, err := net.ResolveUDPAddr("udp", ":40299")
 	if err != nil {
 		return
 	}
-	go waitForBroadcast(addr)
-	time.Sleep(time.Second * 5)
-	data := make([]byte, 16)
 
-	broadcast, err := net.ResolveUDPAddr("udp", "255.255.255.255:40299")
+	go netNode.waitForBroadcast(addr, len(data))
 
 	conn, err := net.DialUDP("udp4", nil, broadcast)
+	if err != nil {
+		return
+	}
+
 	for {
-		time.Sleep(time.Second * 5)
-		fmt.Println("sending")
 		_, err := conn.Write(data)
 		if err != nil {
 			break
 		}
+		time.Sleep(time.Second * 5)
 	}
 }
 
-func waitForBroadcast(addr *net.UDPAddr) {
+func (netNode *NetworkNode) waitForBroadcast(addr *net.UDPAddr, size int) {
 	conn, err := net.ListenUDP("udp", addr)
 	if err != nil {
 		return
 	}
 	for {
-		data := make([]byte, 16)
-		_, err = conn.Read(data)
+		data := make([]byte, size)
+		n, err := conn.Read(data)
 		if err != nil {
 			return
 		}
-		go receive(conn)
+		if n == size {
+			go netNode.receive(data)
+		}
 	}
 }
 
-func receive(conn *net.UDPConn) {
-	fmt.Println("received local:", conn.LocalAddr())
-	fmt.Println("received remote:", conn.LocalAddr())
+func (netNode *NetworkNode) receive(data []byte) {
+	bs := utils.NewByteSliceWithData(data, 0)
+	nid := &protocol.NetworkID{}
+	nid.Unmarshal(bs)
+	if !nid.Equal(netNode.networkID) {
+		fmt.Println("Receive ping from:", nid.String())
+	}
 }

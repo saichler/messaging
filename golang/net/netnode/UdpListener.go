@@ -60,7 +60,21 @@ func (netNode *NetworkNode) receive(data []byte) {
 	nid := &protocol.NetworkID{}
 	nid.Unmarshal(bs)
 	fmt.Println("Ping from:" + protocol.GetIpAsString(nid.Host()))
-	if !nid.Equal(netNode.networkID) && nid.Host() > netNode.networkID.Host() {
+	if nid.Equal(netNode.networkID) {
+		return
+	}
+	if nid.Host() > netNode.networkID.Host() {
+		netNode.checkForUplink(nid)
+		return
+	}
+	count, ok := netNode.udpPingCount.Get(nid.Host()).(int)
+	if !ok {
+		netNode.udpPingCount.Put(nid.Host(), 1)
+		return
+	}
+	count++
+	netNode.udpPingCount.Put(nid.Host(), count)
+	if count >= 1 {
 		netNode.checkForUplink(nid)
 	}
 }
@@ -69,7 +83,7 @@ func (netNode *NetworkNode) checkForUplink(nid *protocol.NetworkID) {
 	nc := netNode.networkSwitch.getNetworkConnection(nid)
 	if nc == nil {
 		ip := protocol.GetIpAsString(nid.Host())
-		utils.Info("Uplink to: " + ip)
+		utils.Info("Creating an Uplink to: " + ip)
 		netNode.Uplink(ip)
 	}
 }

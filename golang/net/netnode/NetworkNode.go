@@ -21,6 +21,7 @@ type NetworkNode struct {
 	lock            *sync.Cond
 	nextMessageID   uint32
 	active          bool
+	udpPingCount    *Map
 }
 
 func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
@@ -28,6 +29,7 @@ func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
 	networkNode.lock = sync.NewCond(&sync.Mutex{})
 	networkNode.active = true
 	networkNode.messageHandler = handler
+	networkNode.udpPingCount = NewMap()
 
 	socket, port, e := bind()
 

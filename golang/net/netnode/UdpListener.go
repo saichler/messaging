@@ -14,7 +14,10 @@ func ListenForUDPBroadcast() {
 	go waitForBroadcast(addr)
 	time.Sleep(time.Second * 5)
 	data := make([]byte, 16)
-	conn, err := net.DialUDP("udp4", nil, addr)
+
+	broadcast, err := net.ResolveUDPAddr("udp", "255.255.255.255:40299")
+
+	conn, err := net.DialUDP("udp4", nil, broadcast)
 	for {
 		time.Sleep(time.Second * 5)
 		fmt.Println("sending")

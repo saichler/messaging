@@ -1,7 +1,6 @@
 package netnode
 
 import (
-	"fmt"
 	"github.com/saichler/messaging/golang/net/protocol"
 	utils "github.com/saichler/utils/golang"
 	"net"
@@ -59,7 +58,6 @@ func (netNode *NetworkNode) receive(data []byte) {
 	bs := utils.NewByteSliceWithData(data, 0)
 	nid := &protocol.NetworkID{}
 	nid.Unmarshal(bs)
-	fmt.Println("Ping from:" + protocol.GetIpAsString(nid.Host()))
 	if nid.Equal(netNode.networkID) {
 		return
 	}

@@ -50,7 +50,7 @@ func (netNode *NetworkNode) waitForBroadcast(addr *net.UDPAddr, size int) {
 			return
 		}
 		if n == size {
-			go netNode.receive(data)
+			netNode.receive(data)
 		}
 	}
 }
@@ -74,7 +74,7 @@ func (netNode *NetworkNode) receive(data []byte) {
 	}
 	count++
 	netNode.udpPingCount.Put(nid.Host(), count)
-	if count >= 1 {
+	if count >= 2 {
 		netNode.checkForUplink(nid)
 	}
 }

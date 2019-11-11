@@ -1,7 +1,6 @@
 package netnode
 
 import (
-	"fmt"
 	"github.com/saichler/messaging/golang/net/protocol"
 	utils "github.com/saichler/utils/golang"
 	"net"
@@ -58,7 +57,16 @@ func (netNode *NetworkNode) receive(data []byte) {
 	bs := utils.NewByteSliceWithData(data, 0)
 	nid := &protocol.NetworkID{}
 	nid.Unmarshal(bs)
-	if !nid.Equal(netNode.networkID) {
-		fmt.Println("Receive ping from:", nid.String())
+	if !nid.Equal(netNode.networkID) && nid.Host() > netNode.networkID.Host() {
+		netNode.checkForUplink(nid)
+	}
+}
+
+func (netNode *NetworkNode) checkForUplink(nid *protocol.NetworkID) {
+	nc := netNode.networkSwitch.getNetworkConnection(nid)
+	if nc == nil {
+		ip := protocol.GetIpAsString(nid.Host())
+		utils.Info("Uplink to: " + ip)
+		netNode.Uplink(ip)
 	}
 }

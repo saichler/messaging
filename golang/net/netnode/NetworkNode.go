@@ -21,7 +21,7 @@ type NetworkNode struct {
 	lock            *sync.Cond
 	nextMessageID   uint32
 	active          bool
-	udpPingCount    *Map
+	udpBroadcast    *UdpBroadcastListener
 }
 
 func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
@@ -29,7 +29,7 @@ func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
 	networkNode.lock = sync.NewCond(&sync.Mutex{})
 	networkNode.active = true
 	networkNode.messageHandler = handler
-	networkNode.udpPingCount = NewMap()
+	networkNode.udpBroadcast = NewUDPListener(networkNode)
 
 	socket, port, e := bind()
 
@@ -53,7 +53,7 @@ func NewNetworkNode(handler MessageHandler) (*NetworkNode, error) {
 	networkNode.networkSwitch = newSwitch(networkNode)
 	networkNode.start()
 	if networkNode.isNetworkSwitch {
-		go networkNode.listenForUDPBroadcast()
+		go networkNode.udpBroadcast.start()
 	}
 	return networkNode, nil
 }

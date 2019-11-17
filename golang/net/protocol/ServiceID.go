@@ -21,15 +21,15 @@ func NewServiceID(networkID *NetworkID, topic string, id uint16) *ServiceID {
 	return sid
 }
 
-func (sid *ServiceID) Marshal(ba *ByteSlice) {
-	sid.networkID.Marshal(ba)
+func (sid *ServiceID) Bytes(ba *ByteSlice) {
+	sid.networkID.Bytes(ba)
 	ba.AddString(sid.topic)
 	ba.AddUInt16(sid.id)
 }
 
-func (sid *ServiceID) Unmarshal(ba *ByteSlice) {
+func (sid *ServiceID) Object(ba *ByteSlice) {
 	sid.networkID = &NetworkID{}
-	sid.networkID.Unmarshal(ba)
+	sid.networkID.Object(ba)
 	sid.topic = ba.GetString()
 	sid.id = ba.GetUInt16()
 }

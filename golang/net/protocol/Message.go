@@ -31,11 +31,11 @@ func NewMessage(source, destination, originalSource *ServiceID, messageID uint32
 	return message
 }
 
-func (message *Message) Marshal() []byte {
+func (message *Message) Bytes() []byte {
 	ba := NewByteSlice()
-	message.source.Marshal(ba)
-	message.destination.Marshal(ba)
-	message.originalSource.Marshal(ba)
+	message.source.Bytes(ba)
+	message.destination.Bytes(ba)
+	message.originalSource.Bytes(ba)
 	ba.AddUInt32(message.messageID)
 	ba.AddString(message.topic)
 	ba.AddBool(message.isReply)
@@ -43,13 +43,13 @@ func (message *Message) Marshal() []byte {
 	return ba.Data()
 }
 
-func (message *Message) Unmarshal(ba *ByteSlice) {
+func (message *Message) Object(ba *ByteSlice) {
 	message.source = &ServiceID{}
 	message.destination = &ServiceID{}
 	message.originalSource = &ServiceID{}
-	message.source.Unmarshal(ba)
-	message.destination.Unmarshal(ba)
-	message.originalSource.Unmarshal(ba)
+	message.source.Object(ba)
+	message.destination.Object(ba)
+	message.originalSource.Object(ba)
 	message.messageID = ba.GetUInt32()
 	message.topic = ba.GetString()
 	message.isReply = ba.GetBool()

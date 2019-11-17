@@ -60,10 +60,10 @@ func (p *Packet) Data() []byte {
 	return p.data
 }
 
-func (p *Packet) Marshal() []byte {
+func (p *Packet) Bytes() []byte {
 	bs := NewByteSlice()
-	p.source.Marshal(bs)
-	p.destination.Marshal(bs)
+	p.source.Bytes(bs)
+	p.destination.Bytes(bs)
 	mpp := Encode2BoolAndUInt6(p.multi, p.persisted, p.priority)
 	bs.AddByte(mpp)
 	bs.AddUInt32(p.messageID)
@@ -72,18 +72,18 @@ func (p *Packet) Marshal() []byte {
 	return bs.Data()
 }
 
-func UnmarshalHeaderOnly(data []byte) (*NetworkID, *NetworkID, bool, bool, int, *ByteSlice) {
+func Header(data []byte) (*NetworkID, *NetworkID, bool, bool, int, *ByteSlice) {
 	ba := NewByteSliceWithData(data, 0)
 	source := &NetworkID{}
 	dest := &NetworkID{}
-	source.Unmarshal(ba)
-	dest.Unmarshal(ba)
+	source.Object(ba)
+	dest.Object(ba)
 	mpp := ba.GetByte()
 	m, prs, pri := Decode2BoolAndUInt6(mpp)
 	return source, dest, m, prs, pri, ba
 }
 
-func (p *Packet) Unmarshal(source, dest *NetworkID, m, prs bool, pri int, ba *ByteSlice) {
+func (p *Packet) Object(source, dest *NetworkID, m, prs bool, pri int, ba *ByteSlice) {
 	p.source = source
 	p.destination = dest
 	p.multi = m

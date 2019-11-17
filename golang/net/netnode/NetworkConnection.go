@@ -104,7 +104,7 @@ func (networkConnection *NetworkConnection) nextPacket() error {
 
 func (networkConnection *NetworkConnection) addPacketToOutbox(p *Packet) (error) {
 	start := time.Now().UnixNano()
-	data := p.Marshal()
+	data := p.Bytes()
 	end := time.Now().UnixNano()
 	networkConnection.statistics.AddTxTimeSync(end - start)
 	networkConnection.mailbox.PushOutbox(data, p.Priority())
@@ -172,7 +172,7 @@ func (networkConnection *NetworkConnection) handshake() (bool, error) {
 
 	packet := networkConnection.newInterfacePacket(nil, 0, 0, false, false, 0, NetConfig.Handshake())
 
-	sendData := packet.Marshal()
+	sendData := packet.Bytes()
 	networkConnection.write(sendData)
 
 	err := networkConnection.nextPacket()
@@ -182,9 +182,9 @@ func (networkConnection *NetworkConnection) handshake() (bool, error) {
 
 	data := networkConnection.mailbox.PopInbox()
 
-	source, destination, multi, persist, priority, ba := UnmarshalHeaderOnly(data)
+	source, destination, multi, persist, priority, ba := Header(data)
 	p := &Packet{}
-	p.Unmarshal(source, destination, multi, persist, priority, ba)
+	p.Object(source, destination, multi, persist, priority, ba)
 
 	Info("handshaked "+networkConnection.networkNode.networkID.String()+" with nid:", p.Source().String())
 	networkConnection.peerNetworkID = p.Source()

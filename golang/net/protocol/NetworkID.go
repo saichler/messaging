@@ -31,7 +31,7 @@ func (networkID *NetworkID) Less() int64 {
 	return networkID.less
 }
 
-func (networkID *NetworkID) Marshal(ba *ByteSlice) {
+func (networkID *NetworkID) Bytes(ba *ByteSlice) {
 	if networkID != nil {
 		ba.AddInt64(networkID.most)
 		ba.AddInt64(networkID.less)
@@ -41,7 +41,7 @@ func (networkID *NetworkID) Marshal(ba *ByteSlice) {
 	}
 }
 
-func (networkID *NetworkID) Unmarshal(ba *ByteSlice) {
+func (networkID *NetworkID) Object(ba *ByteSlice) {
 	networkID.most = ba.GetInt64()
 	networkID.less = ba.GetInt64()
 }

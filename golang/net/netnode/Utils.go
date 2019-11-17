@@ -49,8 +49,8 @@ func (networkConnection *NetworkConnection) DecodeMessage(p *Packet, m *Message,
 	var messageComplete bool
 
 	if isUnreachable {
-		origSource, origDest, multi, persist, priority, ba := UnmarshalHeaderOnly(p.Data())
-		p.Unmarshal(origSource, origDest, multi, persist, priority, ba)
+		origSource, origDest, multi, persist, priority, ba := Header(p.Data())
+		p.Object(origSource, origDest, multi, persist, priority, ba)
 	}
 
 	if p.Multi() {
@@ -66,7 +66,7 @@ func (networkConnection *NetworkConnection) DecodeMessage(p *Packet, m *Message,
 		if p.Destination().Equal(NetConfig.UnreachableID()) {
 		} else {
 			ba := NewByteSliceWithData(messageData, 0)
-			m.Unmarshal(ba)
+			m.Object(ba)
 		}
 	}
 }
@@ -74,7 +74,7 @@ func (networkConnection *NetworkConnection) DecodeMessage(p *Packet, m *Message,
 func (networkConnection *NetworkConnection) SendMessage(message *Message) error {
 
 	networkConnection.statistics.AddTxMessages()
-	messageData := message.Marshal()
+	messageData := message.Bytes()
 
 	mtu := NetConfig.MTU()
 

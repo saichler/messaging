@@ -86,11 +86,11 @@ func (networkSwitch *NetworkSwitch) sendUnreachable(source *NetworkID, priority 
 		return
 	}
 	p := NewPacket(source, NetConfig.UnreachableID(), 0, 0, false, false, 0, data)
-	networkConnection.mailbox.PushOutbox(p.Marshal(), priority)
+	networkConnection.mailbox.PushOutbox(p.Bytes(), priority)
 }
 
 func (networkSwitch *NetworkSwitch) handlePacket(data []byte, networkConnection *NetworkConnection) error {
-	source, destination, multi, persist, priority, ba := UnmarshalHeaderOnly(data)
+	source, destination, multi, persist, priority, ba := Header(data)
 	if destination.Equal(NetConfig.UnreachableID()) {
 		if source.Equal(networkSwitch.netowrkNode.networkID) {
 			networkSwitch.handleMyPacket(source, destination, multi, persist, priority, data, ba, networkConnection, true)
@@ -132,7 +132,7 @@ func (networkSwitch *NetworkSwitch) handleMulticast(source, destination *Network
 func (networkSwitch *NetworkSwitch) handleMyPacket(source, destination *NetworkID, multi, persist bool, priority int, data []byte, ba *ByteSlice, networkConnection *NetworkConnection, isUnreachable bool) {
 	message := &Message{}
 	p := &Packet{}
-	p.Unmarshal(source, destination, multi, persist, priority, ba)
+	p.Object(source, destination, multi, persist, priority, ba)
 	networkConnection.DecodeMessage(p, message, isUnreachable)
 
 	if message.Complete() {

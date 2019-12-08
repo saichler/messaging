@@ -18,7 +18,7 @@ func NewNetworkID(ipv4 string, port int32) *NetworkID {
 	if e != nil {
 		panic(e)
 	}
-	newHID.most = 0;
+	newHID.most = 0
 	newHID.less = int64(ip)<<32 + int64(port)
 	return newHID
 }
@@ -31,19 +31,30 @@ func (networkID *NetworkID) Less() int64 {
 	return networkID.less
 }
 
-func (networkID *NetworkID) Bytes(ba *ByteSlice) {
+func (networkID *NetworkID) ToBytes() []byte {
+	bs := NewByteSlice()
+	networkID.Write(bs)
+	return bs.Data()
+}
+
+func (networkID *NetworkID) FromBytes(data []byte) {
+	bs := NewByteSliceWithData(data, 0)
+	networkID.Read(bs)
+}
+
+func (networkID *NetworkID) Write(bs *ByteSlice) {
 	if networkID != nil {
-		ba.AddInt64(networkID.most)
-		ba.AddInt64(networkID.less)
+		bs.AddInt64(networkID.most)
+		bs.AddInt64(networkID.less)
 	} else {
-		ba.AddInt64(0)
-		ba.AddInt64(0)
+		bs.AddInt64(0)
+		bs.AddInt64(0)
 	}
 }
 
-func (networkID *NetworkID) Object(ba *ByteSlice) {
-	networkID.most = ba.GetInt64()
-	networkID.less = ba.GetInt64()
+func (networkID *NetworkID) Read(bs *ByteSlice) {
+	networkID.most = bs.GetInt64()
+	networkID.less = bs.GetInt64()
 }
 
 func (networkID *NetworkID) String() string {

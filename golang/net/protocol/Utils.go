@@ -9,7 +9,7 @@ import (
 )
 import . "github.com/saichler/utils/golang"
 
-func encrypt(data []byte) ([]byte) {
+func encrypt(data []byte) []byte {
 	if NetConfig.Encrypted() {
 		encData, err := Encode(data, NetConfig.EncKey())
 		if err != nil {

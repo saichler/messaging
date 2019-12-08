@@ -49,7 +49,7 @@ func (mailbox *Mailbox) PushOutbox(pData []byte, priority int) {
 }
 
 func (mailbox *Mailbox) getMultiPartMessage(packet *Packet) (*MultiPartMessage, *SourceMultiPartMessages) {
-	sourceNID := packet.Source()
+	sourceNID := packet.Header().Source()
 	var smpm *SourceMultiPartMessages
 	existing, ok := mailbox.pending.Get(*sourceNID)
 	if !ok {

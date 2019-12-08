@@ -21,17 +21,28 @@ func NewServiceID(networkID *NetworkID, topic string, id uint16) *ServiceID {
 	return sid
 }
 
-func (sid *ServiceID) Bytes(ba *ByteSlice) {
-	sid.networkID.Bytes(ba)
-	ba.AddString(sid.topic)
-	ba.AddUInt16(sid.id)
+func (sid *ServiceID) ToBytes() []byte {
+	bs := NewByteSlice()
+	sid.Write(bs)
+	return bs.Data()
 }
 
-func (sid *ServiceID) Object(ba *ByteSlice) {
+func (sid *ServiceID) FromBytes(data []byte) {
+	bs := NewByteSliceWithData(data, 0)
+	sid.Read(bs)
+}
+
+func (sid *ServiceID) Write(bs *ByteSlice) {
+	sid.networkID.Write(bs)
+	bs.AddString(sid.topic)
+	bs.AddUInt16(sid.id)
+}
+
+func (sid *ServiceID) Read(bs *ByteSlice) {
 	sid.networkID = &NetworkID{}
-	sid.networkID.Object(ba)
-	sid.topic = ba.GetString()
-	sid.id = ba.GetUInt16()
+	sid.networkID.Read(bs)
+	sid.topic = bs.GetString()
+	sid.id = bs.GetUInt16()
 }
 
 func (sid *ServiceID) Publish() bool {

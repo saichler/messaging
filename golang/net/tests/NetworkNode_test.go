@@ -157,7 +157,7 @@ func TestNetworkNodeAndMessageScale(t *testing.T) {
 		go sendScale(handlers[i], handlers[i+1], numOfMessages)
 	}
 
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 10)
 
 	if replyCount != numOfMessages*(len(handlers)-2) {
 		t.Fail()

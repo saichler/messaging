@@ -26,7 +26,7 @@ func (ubl *UdpBroadcastListener) start() error {
 
 	ubl.running = true
 	bs := NewByteSlice()
-	ubl.node.NetworkID().Bytes(bs)
+	ubl.node.NetworkID().Write(bs)
 	data := bs.Data()
 	encData, e := security.Encode(data, protocol.NetConfig.EncKey())
 	if e != nil {
@@ -85,7 +85,7 @@ func (ubl *UdpBroadcastListener) waitForBroadcasts(addr *net.UDPAddr) {
 func (ubl *UdpBroadcastListener) receive(data []byte) {
 	bs := NewByteSliceWithData(data, 0)
 	nid := &protocol.NetworkID{}
-	nid.Object(bs)
+	nid.Read(bs)
 	if nid.Equal(ubl.node.NetworkID()) {
 		return
 	}

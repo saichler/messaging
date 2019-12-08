@@ -11,7 +11,7 @@ import (
 func bind() (net.Listener, int32, error) {
 	port := NetConfig.SwitchPort()
 
-	Debug("Trying to bind to switch port ", strconv.Itoa(int(port)), ".");
+	Debug("Trying to bind to switch port ", strconv.Itoa(int(port)), ".")
 	socket, e := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
 
 	if e != nil {
@@ -49,11 +49,14 @@ func (networkConnection *NetworkConnection) DecodeMessage(p *Packet, m *Message,
 	var messageComplete bool
 
 	if isUnreachable {
-		origSource, origDest, multi, persist, priority, ba := Header(p.Data())
-		p.Object(origSource, origDest, multi, persist, priority, ba)
+		bs := NewByteSliceWithData(p.Data(), 0)
+		ph := &PacketHeader{}
+		ph.Read(bs)
+		p.SetHeader(ph)
+		p.Read(bs)
 	}
 
-	if p.Multi() {
+	if p.Header().Multi() {
 		messageData, messageComplete = networkConnection.mailbox.AddPacket(p)
 	} else {
 		messageData = p.Data()
@@ -63,10 +66,10 @@ func (networkConnection *NetworkConnection) DecodeMessage(p *Packet, m *Message,
 	m.SetComplete(messageComplete)
 
 	if messageComplete {
-		if p.Destination().Equal(NetConfig.UnreachableID()) {
+		if p.Header().Destination().Equal(NetConfig.UnreachableID()) {
 		} else {
-			ba := NewByteSliceWithData(messageData, 0)
-			m.Object(ba)
+			bs := NewByteSliceWithData(messageData, 0)
+			m.Read(bs)
 		}
 	}
 }
@@ -74,7 +77,7 @@ func (networkConnection *NetworkConnection) DecodeMessage(p *Packet, m *Message,
 func (networkConnection *NetworkConnection) SendMessage(message *Message) error {
 
 	networkConnection.statistics.AddTxMessages()
-	messageData := message.Bytes()
+	messageData := message.ToBytes()
 
 	mtu := NetConfig.MTU()
 

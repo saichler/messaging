@@ -31,29 +31,38 @@ func NewMessage(source, destination, originalSource *ServiceID, messageID uint32
 	return message
 }
 
-func (message *Message) Bytes() []byte {
-	ba := NewByteSlice()
-	message.source.Bytes(ba)
-	message.destination.Bytes(ba)
-	message.originalSource.Bytes(ba)
-	ba.AddUInt32(message.messageID)
-	ba.AddString(message.topic)
-	ba.AddBool(message.isReply)
-	ba.AddByteSlice(message.data)
-	return ba.Data()
+func (message *Message) ToBytes() []byte {
+	bs := NewByteSlice()
+	message.Write(bs)
+	return bs.Data()
 }
 
-func (message *Message) Object(ba *ByteSlice) {
+func (message *Message) FromBytes(data []byte) {
+	bs := NewByteSliceWithData(data, 0)
+	message.Read(bs)
+}
+
+func (message *Message) Write(bs *ByteSlice) {
+	message.source.Write(bs)
+	message.destination.Write(bs)
+	message.originalSource.Write(bs)
+	bs.AddUInt32(message.messageID)
+	bs.AddString(message.topic)
+	bs.AddBool(message.isReply)
+	bs.AddByteSlice(message.data)
+}
+
+func (message *Message) Read(bs *ByteSlice) {
 	message.source = &ServiceID{}
 	message.destination = &ServiceID{}
 	message.originalSource = &ServiceID{}
-	message.source.Object(ba)
-	message.destination.Object(ba)
-	message.originalSource.Object(ba)
-	message.messageID = ba.GetUInt32()
-	message.topic = ba.GetString()
-	message.isReply = ba.GetBool()
-	message.data = ba.GetByteSlice()
+	message.source.Read(bs)
+	message.destination.Read(bs)
+	message.originalSource.Read(bs)
+	message.messageID = bs.GetUInt32()
+	message.topic = bs.GetString()
+	message.isReply = bs.GetBool()
+	message.data = bs.GetByteSlice()
 }
 
 func (message *Message) Source() *ServiceID {
@@ -106,4 +115,8 @@ func (message *Message) Publish() bool {
 
 func (message *Message) IsReply() bool {
 	return message.isReply
+}
+
+func (message *Message) ByteSlice() *ByteSlice {
+	return NewByteSliceWithData(message.data, 0)
 }

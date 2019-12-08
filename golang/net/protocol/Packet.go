@@ -5,47 +5,27 @@ import (
 )
 
 type Packet struct {
-	source      *NetworkID
-	destination *NetworkID
-	multi       bool
-	persisted   bool
-	priority    int //uint6 if existed
-	messageID   uint32
-	packetID    uint32
-	data        []byte
+	header    *PacketHeader
+	messageID uint32
+	packetID  uint32
+	data      []byte
 }
 
-func NewPacket(source, destination *NetworkID, messageID, packetID uint32, multi, persisted bool, priority int, data []byte) *Packet {
+func NewPacket(header *PacketHeader, messageID, packetID uint32, data []byte) *Packet {
 	packet := &Packet{}
-	packet.source = source
-	packet.destination = destination
+	packet.header = header
 	packet.messageID = messageID
 	packet.packetID = packetID
-	packet.multi = multi
-	packet.persisted = persisted
-	packet.priority = priority
 	packet.data = data
 	return packet
 }
 
-func (p *Packet) Source() *NetworkID {
-	return p.source
+func (p *Packet) Header() *PacketHeader {
+	return p.header
 }
 
-func (p *Packet) Destination() *NetworkID {
-	return p.destination
-}
-
-func (p *Packet) Multi() bool {
-	return p.multi
-}
-
-func (p *Packet) Persisted() bool {
-	return p.persisted
-}
-
-func (p *Packet) Priority() int {
-	return p.priority
+func (p *Packet) SetHeader(h *PacketHeader) {
+	p.header = h
 }
 
 func (p *Packet) MessageID() uint32 {
@@ -60,36 +40,26 @@ func (p *Packet) Data() []byte {
 	return p.data
 }
 
-func (p *Packet) Bytes() []byte {
+func (p *Packet) ToBytes() []byte {
 	bs := NewByteSlice()
-	p.source.Bytes(bs)
-	p.destination.Bytes(bs)
-	mpp := Encode2BoolAndUInt6(p.multi, p.persisted, p.priority)
-	bs.AddByte(mpp)
-	bs.AddUInt32(p.messageID)
-	bs.AddUInt32(p.packetID)
-	bs.AddByteSlice(encrypt(p.data))
+	p.Write(bs)
 	return bs.Data()
 }
 
-func Header(data []byte) (*NetworkID, *NetworkID, bool, bool, int, *ByteSlice) {
-	ba := NewByteSliceWithData(data, 0)
-	source := &NetworkID{}
-	dest := &NetworkID{}
-	source.Object(ba)
-	dest.Object(ba)
-	mpp := ba.GetByte()
-	m, prs, pri := Decode2BoolAndUInt6(mpp)
-	return source, dest, m, prs, pri, ba
+func (p *Packet) FromBytes(data []byte) {
+	bs := NewByteSliceWithData(data, 0)
+	p.Read(bs)
 }
 
-func (p *Packet) Object(source, dest *NetworkID, m, prs bool, pri int, ba *ByteSlice) {
-	p.source = source
-	p.destination = dest
-	p.multi = m
-	p.persisted = prs
-	p.priority = pri
-	p.messageID = ba.GetUInt32()
-	p.packetID = ba.GetUInt32()
-	p.data = decrypt(ba.GetByteSlice())
+func (p *Packet) Write(bs *ByteSlice) {
+	p.header.Write(bs)
+	bs.AddUInt32(p.messageID)
+	bs.AddUInt32(p.packetID)
+	bs.AddByteSlice(encrypt(p.data))
+}
+
+func (p *Packet) Read(bs *ByteSlice) {
+	p.messageID = bs.GetUInt32()
+	p.packetID = bs.GetUInt32()
+	p.data = decrypt(bs.GetByteSlice())
 }

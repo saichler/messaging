@@ -85,58 +85,60 @@ func (networkSwitch *NetworkSwitch) sendUnreachable(source *NetworkID, priority 
 	if networkConnection == nil {
 		return
 	}
-	p := NewPacket(source, NetConfig.UnreachableID(), 0, 0, false, false, 0, data)
-	networkConnection.mailbox.PushOutbox(p.Bytes(), priority)
+	p := NewPacket(NewPacketHeader(source, NetConfig.UnreachableID(), false, false, 0), 0, 0, data)
+	networkConnection.mailbox.PushOutbox(p.ToBytes(), priority)
 }
 
 func (networkSwitch *NetworkSwitch) handlePacket(data []byte, networkConnection *NetworkConnection) error {
-	source, destination, multi, persist, priority, ba := Header(data)
-	if destination.Equal(NetConfig.UnreachableID()) {
-		if source.Equal(networkSwitch.netowrkNode.networkID) {
-			networkSwitch.handleMyPacket(source, destination, multi, persist, priority, data, ba, networkConnection, true)
-
+	header := &PacketHeader{}
+	bs := NewByteSliceWithData(data, 0)
+	header.Read(bs)
+	if header.Destination().Equal(NetConfig.UnreachableID()) {
+		if header.Source().Equal(networkSwitch.netowrkNode.networkID) {
+			networkSwitch.handleMyPacket(header, bs, networkConnection, true)
 		}
-	} else if destination.Publish() {
-		networkSwitch.handleMulticast(source, destination, multi, persist, priority, data, ba, networkConnection)
-	} else if destination.Equal(networkSwitch.netowrkNode.networkID) {
-		networkSwitch.handleMyPacket(source, destination, multi, persist, priority, data, ba, networkConnection, false)
+	} else if header.Destination().Publish() {
+		networkSwitch.handleMulticast(header, data, bs, networkConnection)
+	} else if header.Destination().Equal(networkSwitch.netowrkNode.networkID) {
+		networkSwitch.handleMyPacket(header, bs, networkConnection, false)
 	} else {
-		in := networkSwitch.getNetworkConnection(destination)
+		in := networkSwitch.getNetworkConnection(header.Destination())
 		if in == nil {
-			networkSwitch.sendUnreachable(source, priority, data)
-			return errors.New("Unreachable address:" + destination.String())
+			networkSwitch.sendUnreachable(header.Source(), header.Priority(), data)
+			return errors.New("Unreachable address:" + header.Destination().String())
 		}
-		in.mailbox.PushOutbox(data, priority)
+		in.mailbox.PushOutbox(data, header.Priority())
 	}
 	return nil
 }
 
-func (networkSwitch *NetworkSwitch) handleMulticast(source, destination *NetworkID, multi, persist bool, priority int, data []byte, ba *ByteSlice, networkConnection *NetworkConnection) {
+func (networkSwitch *NetworkSwitch) handleMulticast(header *PacketHeader, data []byte, bs *ByteSlice, networkConnection *NetworkConnection) {
 	if networkSwitch.netowrkNode.isNetworkSwitch {
 		all := networkSwitch.getAllInternal()
 		for k, v := range all {
-			if !k.Equal(source) {
-				v.mailbox.PushOutbox(data, priority)
+			if !k.Equal(header.Source()) {
+				v.mailbox.PushOutbox(data, header.Priority())
 			}
 		}
-		if source.Host() == networkSwitch.netowrkNode.networkID.Host() {
+		if header.Source().Host() == networkSwitch.netowrkNode.networkID.Host() {
 			all := networkSwitch.getAllExternal()
 			for _, v := range all {
-				v.mailbox.PushOutbox(data, priority)
+				v.mailbox.PushOutbox(data, header.Priority())
 			}
 		}
 	}
-	networkSwitch.handleMyPacket(source, destination, multi, persist, priority, data, ba, networkConnection, false)
+	networkSwitch.handleMyPacket(header, bs, networkConnection, false)
 }
 
-func (networkSwitch *NetworkSwitch) handleMyPacket(source, destination *NetworkID, multi, persist bool, priority int, data []byte, ba *ByteSlice, networkConnection *NetworkConnection, isUnreachable bool) {
+func (networkSwitch *NetworkSwitch) handleMyPacket(header *PacketHeader, bs *ByteSlice, networkConnection *NetworkConnection, isUnreachable bool) {
 	message := &Message{}
 	p := &Packet{}
-	p.Object(source, destination, multi, persist, priority, ba)
+	p.SetHeader(header)
+	p.Read(bs)
 	networkConnection.DecodeMessage(p, message, isUnreachable)
 
 	if message.Complete() {
-		ne := networkSwitch.getNetworkConnection(source)
+		ne := networkSwitch.getNetworkConnection(header.Source())
 		ne.statistics.AddRxMessages()
 		if !isUnreachable {
 			networkSwitch.netowrkNode.messageHandler.HandleMessage(message)

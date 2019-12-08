@@ -102,20 +102,22 @@ func (networkConnection *NetworkConnection) nextPacket() error {
 	return nil
 }
 
-func (networkConnection *NetworkConnection) addPacketToOutbox(p *Packet) (error) {
+func (networkConnection *NetworkConnection) addPacketToOutbox(p *Packet) error {
 	start := time.Now().UnixNano()
-	data := p.Bytes()
+	data := p.ToBytes()
 	end := time.Now().UnixNano()
 	networkConnection.statistics.AddTxTimeSync(end - start)
-	networkConnection.mailbox.PushOutbox(data, p.Priority())
+	networkConnection.mailbox.PushOutbox(data, p.Header().Priority())
 	return nil
 }
 
 func (networkConnection *NetworkConnection) newInterfacePacket(destination *ServiceID, messageID, packetID uint32, multi, persistence bool, priority int, data []byte) *Packet {
 	if destination != nil {
-		return NewPacket(networkConnection.networkNode.networkID, destination.NetworkID(), messageID, packetID, multi, persistence, priority, data)
+		header := NewPacketHeader(networkConnection.networkNode.networkID, destination.NetworkID(), multi, persistence, priority)
+		return NewPacket(header, messageID, packetID, data)
 	}
-	return NewPacket(networkConnection.networkNode.networkID, nil, messageID, packetID, multi, persistence, priority, data)
+	header := NewPacketHeader(networkConnection.networkNode.networkID, nil, multi, persistence, priority)
+	return NewPacket(header, messageID, packetID, data)
 }
 
 func (networkConnection *NetworkConnection) runIncomming() {
@@ -172,7 +174,7 @@ func (networkConnection *NetworkConnection) handshake() (bool, error) {
 
 	packet := networkConnection.newInterfacePacket(nil, 0, 0, false, false, 0, NetConfig.Handshake())
 
-	sendData := packet.Bytes()
+	sendData := packet.ToBytes()
 	networkConnection.write(sendData)
 
 	err := networkConnection.nextPacket()
@@ -181,13 +183,11 @@ func (networkConnection *NetworkConnection) handshake() (bool, error) {
 	}
 
 	data := networkConnection.mailbox.PopInbox()
+	header := &PacketHeader{}
+	header.FromBytes(data)
 
-	source, destination, multi, persist, priority, ba := Header(data)
-	p := &Packet{}
-	p.Object(source, destination, multi, persist, priority, ba)
-
-	Info("handshaked "+networkConnection.networkNode.networkID.String()+" with nid:", p.Source().String())
-	networkConnection.peerNetworkID = p.Source()
+	Info("handshaked "+networkConnection.networkNode.networkID.String()+" with nid:", header.Source().String())
+	networkConnection.peerNetworkID = header.Source()
 	if networkConnection.peerNetworkID.Host() != networkConnection.networkNode.networkID.Host() {
 		networkConnection.external = true
 	}

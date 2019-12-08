@@ -93,6 +93,9 @@ func (networkNode *NetworkNode) waitForlinks() {
 }
 
 func (networkNode *NetworkNode) newNetworkConnection(c net.Conn) (*NetworkID, error) {
+	if c == nil {
+		return nil, Error("Timeout")
+	}
 	Debug("connecting to: " + c.RemoteAddr().String())
 	networkConnection := newNetworkConnection(c, networkNode)
 	added, e := networkConnection.handshake()
